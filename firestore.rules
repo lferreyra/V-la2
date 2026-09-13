@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default-deny catch-all (Pillar 1 of Hardened Rules)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Multi-tenant Workshop Membership & RBAC Gate
+    function isWorkshopMember(workshopId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/workshops/$(workshopId)/users/$(request.auth.uid));
+    }
+
+    function getUserDoc(workshopId) {
+      return get(/databases/$(database)/documents/workshops/$(workshopId)/users/$(request.auth.uid)).data;
+    }
+
+    function isWorkshopAdmin(workshopId) {
+      return isWorkshopMember(workshopId) && getUserDoc(workshopId).role == 'admin';
+    }
+
+    function isWorkshopAdvisor(workshopId) {
+      return isWorkshopMember(workshopId) && 
+        (getUserDoc(workshopId).role == 'advisor' || getUserDoc(workshopId).role == 'admin');
+    }
+
+    function isWorkshopTechnician(workshopId) {
+      return isWorkshopMember(workshopId) &&
+        (getUserDoc(workshopId).role == 'technician' || getUserDoc(workshopId).role == 'advisor' || getUserDoc(workshopId).role == 'admin');
+    }
+
+    // Workshop Master Document
+    match /workshops/{workshopId} {
+      allow get: if isValidId(workshopId) && isWorkshopMember(workshopId);
+      allow list: if false; // Disallow blanket directory scraping
+      allow create, update, delete: if isValidId(workshopId) && isWorkshopAdmin(workshopId);
+
+      // Workshop Users & Team Members
+      match /users/{userId} {
+        allow get: if isValidId(workshopId) && isValidId(userId) && isWorkshopMember(workshopId);
+        allow list: if isValidId(workshopId) && isWorkshopMember(workshopId);
+        // Only Admin can invite, change roles or remove members
+        allow create, update, delete: if isValidId(workshopId) && isValidId(userId) && isWorkshopAdmin(workshopId);
+      }
+
+      // Clients Collection
+      match /clients/{clientId} {
+        allow get: if isValidId(workshopId) && isValidId(clientId) && isWorkshopMember(workshopId);
+        allow list: if isValidId(workshopId) && isWorkshopMember(workshopId);
+        // Advisors and Admins can create and edit clients
+        allow create: if isValidId(workshopId) && isValidId(clientId) && isWorkshopAdvisor(workshopId) &&
+          incoming().workshopId == workshopId &&
+          incoming().fullName is string && incoming().fullName.size() >= 2 && incoming().fullName.size() <= 120 &&
+          incoming().phoneWhatsApp is string && incoming().phoneWhatsApp.size() >= 6 && incoming().phoneWhatsApp.size() <= 30;
+        allow update: if isValidId(workshopId) && isValidId(clientId) && isWorkshopAdvisor(workshopId) &&
+          incoming().workshopId == existing().workshopId;
+        allow delete: if isValidId(workshopId) && isValidId(clientId) && isWorkshopAdmin(workshopId);
+      }
+
+      // Vehicles Collection
+      match /vehicles/{vehicleId} {
+        allow get: if isValidId(workshopId) && isValidId(vehicleId) && isWorkshopMember(workshopId);
+        allow list: if isValidId(workshopId) && isWorkshopMember(workshopId);
+        // Advisors and Admins register and update vehicles; Technicians can read
+        allow create: if isValidId(workshopId) && isValidId(vehicleId) && isWorkshopAdvisor(workshopId) &&
+          incoming().workshopId == workshopId &&
+          incoming().licensePlateNormalized is string && incoming().licensePlateNormalized.size() >= 2 && incoming().licensePlateNormalized.size() <= 20 &&
+          incoming().brand is string && incoming().brand.size() >= 2 && incoming().brand.size() <= 60 &&
+          incoming().year is number && incoming().currentMileage is number;
+        allow update: if isValidId(workshopId) && isValidId(vehicleId) && isWorkshopMember(workshopId) &&
+          incoming().workshopId == existing().workshopId;
+        allow delete: if isValidId(workshopId) && isValidId(vehicleId) && isWorkshopAdmin(workshopId);
+      }
+
+      // Service Orders Collection
+      match /orders/{orderId} {
+        allow get: if isValidId(workshopId) && isValidId(orderId) && isWorkshopMember(workshopId);
+        allow list: if isValidId(workshopId) && isWorkshopMember(workshopId);
+        
+        // Creation restricted to Advisors and Admins
+        allow create: if isValidId(workshopId) && isValidId(orderId) && isWorkshopAdvisor(workshopId) &&
+          incoming().workshopId == workshopId &&
+          incoming().orderNumber is string && incoming().orderNumber.size() <= 30 &&
+          incoming().licensePlateNormalized is string &&
+          incoming().entryMileage is number &&
+          incoming().status in ['recibido', 'inspección', 'presupuesto', 'aprobado', 'en trabajo', 'listo', 'cerrado'];
+
+        // Updates:
+        // - Admins and Advisors can update all operational and status fields
+        // - Technicians can update technical work, oil, filters, evidence, and transition status to 'en trabajo' or 'listo'
+        allow update: if isValidId(workshopId) && isValidId(orderId) && isWorkshopMember(workshopId) &&
+          incoming().workshopId == existing().workshopId &&
+          (
+            isWorkshopAdvisor(workshopId) ||
+            (
+              isWorkshopTechnician(workshopId) &&
+              !(incoming().status in ['presupuesto', 'cerrado'] && existing().status != incoming().status)
+            )
+          );
+
+        allow delete: if isValidId(workshopId) && isValidId(orderId) && isWorkshopAdmin(workshopId);
+      }
+
+      // Reminders Collection
+      match /reminders/{reminderId} {
+        allow get: if isValidId(workshopId) && isValidId(reminderId) && isWorkshopMember(workshopId);
+        allow list: if isValidId(workshopId) && isWorkshopMember(workshopId);
+        allow create, update: if isValidId(workshopId) && isValidId(reminderId) && isWorkshopAdvisor(workshopId) &&
+          incoming().workshopId == workshopId;
+        allow delete: if isValidId(workshopId) && isValidId(reminderId) && isWorkshopAdmin(workshopId);
+      }
+    }
+  }
+}

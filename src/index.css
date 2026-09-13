@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #0D0D0D;
+    --surface-1: #131416;
+    --surface-2: #1A1C20;
+    --surface-glass: rgba(18, 19, 23, 0.75);
+    --border-main: rgba(255, 255, 255, 0.08);
+    --border-highlight: rgba(0, 204, 242, 0.4);
+
+    /* Logo Color Palette from Attached Specs */
+    --brand-cyan: #00CCF2;
+    --brand-amber: #F27D16;
+    --brand-orange: #F25116;
+    --brand-red: #F21616;
+    --brand-dark: #0D0D0D;
+
+    /* Semantic tokens */
+    --neon-lime: #00CCF2;
+    --neon-lime-hover: #00B4D8;
+    --cyan-main: #00CCF2;
+    --cyan-pressed: #087E91;
+    --coral-alert: #F21616;
+    --amber-warn: #F27D16;
+    --green-done: #28C98B;
+    --text-primary: #F4F7F8;
+    --text-secondary: #9AA8B6;
+  }
+
+  body {
+    background-color: #0D0D0D;
+    color: #F4F7F8;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0D0D0D;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #242830;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #00CCF2;
+  }
+}
+
+/* Glassmorphism & Aurora Glows */
+.glass-panel {
+  background: rgba(16, 24, 32, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(20, 31, 42, 0.85);
+  border-color: rgba(210, 248, 39, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(210, 248, 39, 0.15);
+}
+
+.glass-pill {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.neon-glow {
+  box-shadow: 0 0 30px -5px rgba(210, 248, 39, 0.35);
+}
+
+.cyan-glow {
+  box-shadow: 0 0 30px -5px rgba(24, 199, 217, 0.35);
+}
+
+/* Subtle Scanline / Tech pattern */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}

@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "Workshop": {
+      "title": "Workshop",
+      "description": "Datos del taller mecánico multi-tenant",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 120 },
+        "businessName": { "type": "string", "maxLength": 120 },
+        "phoneWhatsApp": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 200 },
+        "schedule": { "type": "string", "maxLength": 150 },
+        "currency": { "type": "string", "maxLength": 10 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "phoneWhatsApp", "address"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Perfil de usuario del taller con rol asignado",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "workshopId": { "type": "string", "maxLength": 64 },
+        "email": { "type": "string", "maxLength": 120 },
+        "displayName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "advisor", "technician"] }
+      },
+      "required": ["uid", "workshopId", "email", "displayName", "role"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Cliente propietario de vehículos",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "workshopId": { "type": "string", "maxLength": 64 },
+        "fullName": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "phoneWhatsApp": { "type": "string", "minLength": 6, "maxLength": 30 },
+        "email": { "type": "string", "maxLength": 120 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "workshopId", "fullName", "phoneWhatsApp"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "Vehículo registrado asociado a un cliente",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "workshopId": { "type": "string", "maxLength": 64 },
+        "clientId": { "type": "string", "maxLength": 64 },
+        "licensePlate": { "type": "string", "minLength": 2, "maxLength": 20 },
+        "licensePlateNormalized": { "type": "string", "minLength": 2, "maxLength": 20 },
+        "brand": { "type": "string", "minLength": 2, "maxLength": 60 },
+        "model": { "type": "string", "minLength": 1, "maxLength": 60 },
+        "version": { "type": "string", "maxLength": 80 },
+        "year": { "type": "number" },
+        "currentMileage": { "type": "number" },
+        "vin": { "type": "string", "maxLength": 30 },
+        "lastVisitDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": [
+        "id",
+        "workshopId",
+        "clientId",
+        "licensePlate",
+        "licensePlateNormalized",
+        "brand",
+        "model",
+        "year",
+        "currentMileage"
+      ]
+    },
+    "ServiceOrder": {
+      "title": "ServiceOrder",
+      "description": "Orden de servicio técnico con pasos operativos y evidencia",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "orderNumber": { "type": "string", "maxLength": 30 },
+        "workshopId": { "type": "string", "maxLength": 64 },
+        "vehicleId": { "type": "string", "maxLength": 64 },
+        "clientId": { "type": "string", "maxLength": 64 },
+        "licensePlate": { "type": "string", "maxLength": 20 },
+        "licensePlateNormalized": { "type": "string", "maxLength": 20 },
+        "entryDate": { "type": "string" },
+        "entryMileage": { "type": "number" },
+        "exitMileage": { "type": "number" },
+        "visitReason": { "type": "string", "maxLength": 500 },
+        "status": {
+          "type": "string",
+          "enum": [
+            "recibido",
+            "inspección",
+            "presupuesto",
+            "aprobado",
+            "en trabajo",
+            "listo",
+            "cerrado"
+          ]
+        },
+        "advisorId": { "type": "string", "maxLength": 128 },
+        "advisorName": { "type": "string", "maxLength": 100 },
+        "assignedTechnicianId": { "type": "string", "maxLength": 128 },
+        "assignedTechnicianName": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "closedAt": { "type": "string" }
+      },
+      "required": [
+        "id",
+        "orderNumber",
+        "workshopId",
+        "vehicleId",
+        "clientId",
+        "licensePlateNormalized",
+        "entryMileage",
+        "visitReason",
+        "status",
+        "advisorId"
+      ]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "Recordatorio de próximo mantenimiento para clientes",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "workshopId": { "type": "string", "maxLength": 64 },
+        "vehicleId": { "type": "string", "maxLength": 64 },
+        "licensePlate": { "type": "string", "maxLength": 20 },
+        "clientName": { "type": "string", "maxLength": 120 },
+        "clientWhatsApp": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 150 },
+        "dueDate": { "type": "string" },
+        "dueMileage": { "type": "number" },
+        "completed": { "type": "boolean" },
+        "notes": { "type": "string", "maxLength": 300 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "workshopId", "vehicleId", "title", "dueDate", "completed"]
+    }
+  },
+  "firestore": {
+    "/workshops/{workshopId}": {
+      "schema": { "$ref": "Workshop" },
+      "description": "Información central de cada taller registrado"
+    },
+    "/workshops/{workshopId}/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Miembros y roles asignados dentro de cada taller"
+    },
+    "/workshops/{workshopId}/clients/{clientId}": {
+      "schema": { "$ref": "Client" },
+      "description": "Clientes pertenecientes exclusivamente al taller"
+    },
+    "/workshops/{workshopId}/vehicles/{vehicleId}": {
+      "schema": { "$ref": "Vehicle" },
+      "description": "Vehículos registrados aislados por taller"
+    },
+    "/workshops/{workshopId}/orders/{orderId}": {
+      "schema": { "$ref": "ServiceOrder" },
+      "description": "Órdenes de servicio técnico con trazabilidad y estados"
+    },
+    "/workshops/{workshopId}/reminders/{reminderId}": {
+      "schema": { "$ref": "Reminder" },
+      "description": "Recordatorios de servicio y avisos periódicos por taller"
+    }
+  }
+}

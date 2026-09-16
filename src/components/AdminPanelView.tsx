@@ -25,7 +25,9 @@ import {
   EyeOff,
   Save,
   Check,
+  TrendingUp,
 } from 'lucide-react';
+import { AnalyticsDashboardWidget } from './AnalyticsDashboardWidget';
 import {
   AppointmentSlot,
   DailyTimeRange,
@@ -53,7 +55,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   onNavigateToReception,
   onOpenAdminLogin,
 }) => {
-  const [activeTab, setActiveTab] = useState<'services' | 'schedules' | 'gcalendar' | 'location'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'schedules' | 'gcalendar' | 'location' | 'analytics'>('services');
   const currentWorkshop = storageRepository.getCurrentWorkshop();
 
   // Services Catalog State (in Argentine Pesos $)
@@ -370,7 +372,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 </span>
               </h4>
               <p className="text-xs text-[#9AA8B6] mt-0.5">
-                Para editar el catálogo, horarios y Google Calendar, inicia sesión con el usuario <strong>ADMIN</strong> y contraseña <strong>PANCHO2026</strong>.
+                Para editar el catálogo, horarios y Google Calendar, inicia sesión con tu cuenta autorizada de Administrador.
               </p>
             </div>
           </div>
@@ -383,7 +385,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F21616] to-[#F27D16] text-white font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <KeyRound className="w-4 h-4" />
-                <span>Ingresar (ADMIN / PANCHO2026)</span>
+                <span>Ingresar como Administrador</span>
               </button>
             )}
             <button
@@ -472,6 +474,19 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               }`}
               title={publishAddress ? 'Dirección pública en la web' : 'Dirección privada/oculta'}
             />
+          </button>
+
+          <button
+            id="tab-admin-analytics"
+            onClick={() => setActiveTab('analytics')}
+            className={`flex items-center justify-center sm:justify-start lg:justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-normal sm:whitespace-nowrap text-center ${
+              activeTab === 'analytics'
+                ? 'bg-gradient-to-r from-[#00CCF2] to-[#7B61FF] text-[#0D0D0D] shadow-md font-extrabold'
+                : 'text-[#9AA8B6] hover:text-[#F4F7F8] hover:bg-white/[0.04]'
+            }`}
+          >
+            <TrendingUp className="w-3.5 h-3.5 shrink-0" />
+            <span>Métricas & Facturación</span>
           </button>
         </div>
       </div>
@@ -1387,6 +1402,13 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= TAB 5: TELEMETRÍA OPERATIVA Y RECHARTS ANALYTICS ================= */}
+      {activeTab === 'analytics' && (
+        <div className="space-y-6">
+          <AnalyticsDashboardWidget />
         </div>
       )}
 

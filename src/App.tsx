@@ -229,7 +229,7 @@ export default function App() {
       {/* Floating WhatsApp Bubble & Quick Turno CTA */}
       <WhatsAppWidget />
 
-      {/* Admin Authentication Modal (User: ADMIN / Pass: PANCHO2026) */}
+      {/* Admin Authentication Modal */}
       <AdminLoginModal
         isOpen={showAdminLoginModal}
         onClose={() => setShowAdminLoginModal(false)}

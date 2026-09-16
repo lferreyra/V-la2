@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { storageRepository, normalizeLicensePlate } from '../services/storageRepository';
 import { Client, OrderStatus, Reminder, ServiceOrder, Vehicle } from '../types';
+import { AnalyticsDashboardWidget } from './AnalyticsDashboardWidget';
 
 interface DashboardViewProps {
   onSelectVehicleHistory: (vehicleId: string) => void;
@@ -273,6 +274,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* SHOP TELEMETRY & RECHARTS ANALYTICS WIDGET */}
+      <AnalyticsDashboardWidget
+        onVehicleClick={(_make, model) => {
+          setQuickSearch(model);
+        }}
+      />
 
       {/* TWO COLUMNS: RECENT ORDERS (70%) + REMINDERS (30%) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

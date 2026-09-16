@@ -144,6 +144,7 @@ export interface ServiceOrder {
   assignedTechnicianName?: string;
   advisorId: string;
   advisorName: string;
+  totalAmount?: number;
   createdAt: string;
   updatedAt: string;
   closedAt?: string;
@@ -250,5 +251,40 @@ export interface GoogleCalendarSyncStatus {
   syncedEventsCount: number;
   pendingSyncCount: number;
   accountEmail: string;
+}
+
+// Shop Telemetry & Recharts Analytics
+export interface MonthlyMetric {
+  monthKey: string;
+  monthLabel: string;
+  serviceVolume: number;
+  revenue: number;
+  averageTicket: number;
+}
+
+export interface MakeStat {
+  make: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface ModelStat {
+  model: string;
+  make: string;
+  count: number;
+  revenue: number;
+}
+
+export interface ShopAnalyticsData {
+  timeframe: '6m' | '12m' | 'all';
+  totalRevenue: number;
+  totalServiceVolume: number;
+  averageTicket: number;
+  topMake: string;
+  topModel: string;
+  monthlySeries: MonthlyMetric[];
+  makesDistribution: MakeStat[];
+  modelsRanking: ModelStat[];
 }
 

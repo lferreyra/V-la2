@@ -255,7 +255,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title={
                   currentUser.role === 'admin'
                     ? 'Sesión de Administrador activa (ADMIN)'
-                    : 'Acceso Administrador (Usuario: ADMIN / PANCHO2026)'
+                    : 'Acceso de Administrador'
                 }
               >
                 <KeyRound className="w-3.5 h-3.5" />
@@ -321,7 +321,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-[#F21616]/20 text-[#F21616] border-[#F21616]/40'
                     : 'bg-[#131416] text-[#F4F7F8] border-white/[0.1]'
                 }`}
-                title="Acceso Admin (ADMIN / PANCHO2026)"
+                title="Acceso de Administrador"
               >
                 <KeyRound className="w-4 h-4" />
               </button>
@@ -458,7 +458,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span>
                     {currentUser.role === 'admin'
                       ? 'Sesión de Admin Activa (ADMIN)'
-                      : 'Acceso Admin (Usuario: ADMIN / PANCHO2026)'}
+                      : 'Acceso de Administrador'}
                   </span>
                 </button>
               </div>

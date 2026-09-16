@@ -34,9 +34,9 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({ isOpen, onClose })
   const [testCases, setTestCases] = useState<TestCase[]>([
     {
       id: 1,
-      name: 'Búsqueda de matrícula existente',
+      name: 'Búsqueda de matrícula existente (Formato Argentina)',
       category: 'Recepción',
-      description: 'Buscar "VLA-4821" o "7892-KTX" y verificar que retorna vehículo, cliente y contador de órdenes.',
+      description: 'Buscar "VLA481" o "AA123BB" (sin guiones) y verificar que retorna vehículo, cliente y contador de órdenes.',
       status: 'pending',
     },
     {
@@ -112,12 +112,12 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({ isOpen, onClose })
     setIsRunningTests(true);
 
     setTimeout(() => {
-      // Test 1: Búsqueda de matrícula existente
-      const t1 = storageRepository.searchVehicleByPlate('VLA-4821');
-      const pass1 = !!(t1 && t1.vehicle.licensePlate === 'VLA-4821');
+      // Test 1: Búsqueda de matrícula existente (sin guiones)
+      const t1 = storageRepository.searchVehicleByPlate('VLA481');
+      const pass1 = !!(t1 && t1.vehicle.licensePlate === 'VLA481');
 
       // Test 2: Búsqueda matrícula inexistente
-      const t2 = storageRepository.searchVehicleByPlate('XYZ-0000');
+      const t2 = storageRepository.searchVehicleByPlate('XYZ999');
       const pass2 = t2 === null;
 
       // Test 3: Registro con whatsapp obligatorio
@@ -127,7 +127,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({ isOpen, onClose })
           fullName: 'Test User',
           phoneWhatsApp: '+34 600 000 000',
           email: '',
-          licensePlate: 'TST-1234',
+          licensePlate: 'TST123',
           brand: 'Seat',
           model: 'Ibiza',
           version: '1.0 TSI',
@@ -223,7 +223,7 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({ isOpen, onClose })
       const originalWs = storageRepository.getCurrentWorkshop().id;
       storageRepository.switchWorkshop('ws-taller-norte');
       const wsNorteVehicles = storageRepository.getVehicles();
-      const hasGolfInNorte = wsNorteVehicles.some((v) => v.vehicle.licensePlate === 'VLA-4821');
+      const hasGolfInNorte = wsNorteVehicles.some((v) => v.vehicle.licensePlate === 'VLA481');
       const pass9 = !hasGolfInNorte; // Should NOT be in Taller Norte
       storageRepository.switchWorkshop(originalWs); // Restore
 
@@ -233,9 +233,9 @@ export const FirebaseModal: React.FC<FirebaseModalProps> = ({ isOpen, onClose })
       setTestCases([
         {
           id: 1,
-          name: 'Búsqueda de matrícula existente',
+          name: 'Búsqueda de matrícula existente (Formato Argentina)',
           category: 'Recepción',
-          description: 'Buscar "VLA-4821" o "7892-KTX" y verificar que retorna vehículo, cliente y contador de órdenes.',
+          description: 'Buscar "VLA481" o "AA123BB" (sin guiones) y verificar que retorna vehículo, cliente y contador de órdenes.',
           status: pass1 ? 'passed' : 'failed',
           resultDetails: 'Encontrado vehículo Golf GTI con 2 órdenes vinculadas y odómetro al día.',
         },

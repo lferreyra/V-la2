@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   ChevronRight,
 } from 'lucide-react';
-import { storageRepository } from '../services/storageRepository';
+import { storageRepository, normalizeLicensePlate } from '../services/storageRepository';
 import { Client, OrderStatus, Reminder, ServiceOrder, Vehicle } from '../types';
 
 interface DashboardViewProps {
@@ -122,13 +122,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const handleCreateReminder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newReminderTitle || !newReminderPlate || !newReminderDate) return;
+    const cleanPlate = normalizeLicensePlate(newReminderPlate);
+    if (!newReminderTitle || !cleanPlate || !newReminderDate) return;
 
-    const vResult = storageRepository.searchVehicleByPlate(newReminderPlate);
+    const vResult = storageRepository.searchVehicleByPlate(cleanPlate);
 
     storageRepository.createReminder({
       vehicleId: vResult ? vResult.vehicle.id : `veh-${Date.now()}`,
-      licensePlate: newReminderPlate.toUpperCase(),
+      licensePlate: cleanPlate,
       clientName: vResult ? vResult.client.fullName : 'Cliente General',
       clientWhatsApp: vResult ? vResult.client.phoneWhatsApp : '+34 600 000 000',
       title: newReminderTitle,
@@ -518,14 +519,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <form onSubmit={handleCreateReminder} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#F4F7F8] mb-1">
-                  Matrícula del Vehículo
+                  Patente del Vehículo (Sin guiones)
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ej. VLA-4821"
+                  placeholder="Ej. VLA481 o AA123BB"
                   value={newReminderPlate}
-                  onChange={(e) => setNewReminderPlate(e.target.value.toUpperCase())}
+                  onChange={(e) => setNewReminderPlate(normalizeLicensePlate(e.target.value))}
                   className="w-full bg-[#0D0D0D] border border-white/15 focus:border-[#00CCF2] rounded-xl px-4 py-2.5 text-xs font-mono font-bold text-[#00CCF2] outline-none uppercase"
                 />
               </div>

@@ -6,24 +6,24 @@ import {
   Droplet,
   Filter,
   Wrench,
-  Camera,
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
   ArrowRight,
   Plus,
   Trash2,
-  Image as ImageIcon,
   Clock,
   UserCheck,
   FileCheck,
   ChevronRight,
   Sparkles,
+  FileDown,
+  ClipboardList,
+  FileText,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Client,
-  EvidenceCategory,
-  EvidenceImage,
   FilterItem,
   FilterType,
   OrderStatus,
@@ -32,6 +32,7 @@ import {
   Vehicle,
 } from '../types';
 import { storageRepository } from '../services/storageRepository';
+import { downloadOrderPdf } from '../utils/pdfGenerator';
 
 interface ServiceOrderFormProps {
   vehicle: Vehicle;
@@ -92,13 +93,6 @@ const FILTER_TYPES: FilterType[] = [
   'Otro',
 ];
 
-const EVIDENCE_CATEGORIES: { id: EvidenceCategory; label: string }[] = [
-  { id: 'recepcion', label: 'Recepción del vehículo' },
-  { id: 'trabajo', label: 'Durante la intervención' },
-  { id: 'pieza_dañada', label: 'Pieza dañada / desgastada' },
-  { id: 'finalizado', label: 'Trabajo finalizado' },
-];
-
 export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
   vehicle,
   client,
@@ -108,8 +102,6 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const totalSteps = 6;
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Form State initialized from existingOrder or defaults
   const [entryDate, setEntryDate] = useState(
@@ -152,12 +144,13 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     existingOrder?.mechanicalWork.futureRecommendations || '',
   );
 
-  // Evidence Images
-  const [evidenceImages, setEvidenceImages] = useState<EvidenceImage[]>(
-    existingOrder?.evidence || [],
+  // Text-Only Technical Records (Modo optimizado sin fotos para ahorrar almacenamiento)
+  const [partsReplacedNotes, setPartsReplacedNotes] = useState(
+    existingOrder?.mechanicalWork.partsReplacedNotes || '',
   );
-  const [newImageDescription, setNewImageDescription] = useState('');
-  const [newImageCategory, setNewImageCategory] = useState<EvidenceCategory>('recepcion');
+  const [technicalObservations, setTechnicalObservations] = useState(
+    existingOrder?.mechanicalWork.technicalObservations || '',
+  );
 
   // Status & Responsible
   const [orderStatus, setOrderStatus] = useState<OrderStatus>(
@@ -188,38 +181,6 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     setFiltersList((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: val } : item)),
     );
-  };
-
-  // Image Upload or Camera Capture handler
-  const handleImageSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const file = files[0];
-    const reader = new FileReader();
-
-    reader.onload = (event) => {
-      const dataUrl = event.target?.result as string;
-      const newImg: EvidenceImage = {
-        id: `ev-${Date.now()}`,
-        url: dataUrl,
-        description: newImageDescription.trim() || 'Evidencia fotográfica documentada',
-        category: newImageCategory,
-        uploadedAt: new Date().toISOString(),
-        fileName: file.name,
-      };
-
-      setEvidenceImages((prev) => [...prev, newImg]);
-      setNewImageDescription('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
-    };
-
-    reader.readAsDataURL(file);
-  };
-
-  const handleRemoveImage = (id: string) => {
-    setEvidenceImages((prev) => prev.filter((img) => img.id !== id));
   };
 
   // Step Validation before progressing
@@ -286,8 +247,10 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
             mechanicalWork: {
               description: workDescription,
               futureRecommendations: recommendations,
+              partsReplacedNotes,
+              technicalObservations,
             },
-            evidence: evidenceImages,
+            evidence: [],
             status: orderStatus,
           },
           closingNote || `Actualización en paso ${currentStep}`,
@@ -318,8 +281,10 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
           mechanicalWork: {
             description: workDescription,
             futureRecommendations: recommendations,
+            partsReplacedNotes,
+            technicalObservations,
           },
-          evidence: evidenceImages,
+          evidence: [],
           status: orderStatus,
           advisorId: currentUser.uid,
           advisorName: currentUser.displayName,
@@ -341,7 +306,7 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
     'Aceite',
     'Filtros',
     'Trabajo Mecánico',
-    'Evidencia',
+    'Registro Técnico',
     'Cierre & Resumen',
   ];
 
@@ -827,152 +792,124 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
         )}
 
         {/* STEP 5: EVIDENCIA FOTOGRÁFICA */}
+        {/* STEP 5: REGISTRO TÉCNICO Y REPUESTOS (100% TEXTO) */}
         {currentStep === 5 && (
-          <div className="space-y-6" id="step-5-evidence-photos">
-            <div className="border-b border-[#263946] pb-3">
-              <h2 className="text-lg font-bold text-[#F4F7F8] flex items-center gap-2">
-                <Camera className="w-5 h-5 text-[#18C7D9]" />
-                <span>Paso 5: Evidencia Fotográfica Digital</span>
-              </h2>
-              <p className="text-xs text-[#A8B6C1]">
-                Tome fotos con la cámara del dispositivo o adjunte imágenes para respaldo técnico y transparencia con el cliente.
-              </p>
-            </div>
-
-            {/* Hidden native file and camera inputs */}
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              onChange={handleImageSelected}
-              className="hidden"
-              id="file-upload-input"
-            />
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              ref={cameraInputRef}
-              onChange={handleImageSelected}
-              className="hidden"
-              id="camera-capture-input"
-            />
-
-            {/* Photo Capture Controls Panel */}
-            <div className="p-5 rounded-2xl bg-[#0B1117] border border-[#263946] space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-[#A8B6C1] mb-1.5">
-                    Categoría de la Fotografía
-                  </label>
-                  <select
-                    value={newImageCategory}
-                    onChange={(e) => setNewImageCategory(e.target.value as EvidenceCategory)}
-                    className="w-full bg-[#131D26] border border-[#263946] focus:border-[#18C7D9] rounded-xl px-3.5 py-2.5 text-xs text-[#F4F7F8] outline-none"
-                  >
-                    {EVIDENCE_CATEGORIES.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-[#A8B6C1] mb-1.5">
-                    Descripción / Nota de la Evidencia
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ej. Estado de pastilla desgastada a 2mm"
-                    value={newImageDescription}
-                    onChange={(e) => setNewImageDescription(e.target.value)}
-                    className="w-full bg-[#131D26] border border-[#263946] focus:border-[#18C7D9] rounded-xl px-3.5 py-2.5 text-xs text-[#F4F7F8] placeholder-[#A8B6C1]/40 outline-none"
-                  />
-                </div>
+          <div className="space-y-6" id="step-5-technical-records">
+            <div className="border-b border-[#263946] pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h2 className="text-lg font-bold text-[#F4F7F8] flex items-center gap-2">
+                  <ClipboardList className="w-5 h-5 text-[#00CCF2]" />
+                  <span>Paso 5: Registro Técnico y Repuestos (100% Texto)</span>
+                </h2>
+                <p className="text-xs text-[#A8B6C1]">
+                  Complete las notas técnicas y el detalle de piezas sustituidas sin sobrecargar el almacenamiento.
+                </p>
               </div>
-
-              {/* Action Buttons: Camera vs File Upload */}
-              <div className="flex flex-wrap items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  id="btn-take-photo"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="px-5 py-3 rounded-xl bg-[#18C7D9] hover:bg-[#087E91] text-[#0B1117] text-xs font-bold flex items-center gap-2 transition-all shadow cursor-pointer"
-                >
-                  <Camera className="w-4 h-4" />
-                  <span>Tomar Fotografía con Cámara</span>
-                </button>
-
-                <button
-                  type="button"
-                  id="btn-upload-photo"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-5 py-3 rounded-xl bg-[#1C2A35] hover:bg-[#263946] border border-[#263946] text-[#F4F7F8] text-xs font-semibold flex items-center gap-2 transition-all cursor-pointer"
-                >
-                  <ImageIcon className="w-4 h-4 text-[#18C7D9]" />
-                  <span>Adjuntar Archivo de Imagen</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Gallery of Uploaded Evidences */}
-            <div className="space-y-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#A8B6C1]">
-                Imágenes Vinculadas a la Orden ({evidenceImages.length})
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00CCF2]/10 border border-[#00CCF2]/30 text-[11px] font-bold text-[#00CCF2] self-start sm:self-auto">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Almacenamiento Optimizado</span>
               </span>
+            </div>
 
-              {evidenceImages.length === 0 ? (
-                <div className="p-8 rounded-xl bg-[#0B1117] border border-dashed border-[#263946] text-center space-y-2">
-                  <ImageIcon className="w-8 h-8 text-[#A8B6C1]/40 mx-auto" />
-                  <p className="text-xs text-[#A8B6C1]">
-                    No hay fotografías cargadas aún para esta orden.
-                  </p>
-                  <p className="text-[11px] text-[#A8B6C1]/70">
-                    Use los botones de arriba para fotografiar la recepción o piezas intervenidas.
-                  </p>
+            <div className="p-4 rounded-xl bg-[#00CCF2]/5 border border-[#00CCF2]/20 flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-[#00CCF2] shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <p className="font-bold text-[#F4F7F8]">
+                  Modo Liviano sin Imágenes Activo
+                </p>
+                <p className="text-[#9AA8B6] leading-relaxed">
+                  Para garantizar máxima velocidad y bajo consumo de almacenamiento en la base de datos, las evidencias se registran en formato textual estructurado (referencias OEM/Aftermarket, torque, diagnosis OBD y comprobaciones técnicas).
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-5">
+              {/* Repuestos y Piezas Reemplazadas */}
+              <div className="p-5 rounded-2xl bg-[#0B1117] border border-[#263946] space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#00CCF2] flex items-center gap-1.5">
+                    <Wrench className="w-4 h-4 text-[#00CCF2]" />
+                    <span>Detalle de Repuestos y Piezas Reemplazadas</span>
+                  </label>
+                  <span className="text-[10px] text-[#9AA8B6]">
+                    Marcas, códigos de parte, cantidades y especificaciones
+                  </span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {evidenceImages.map((img) => (
-                    <div
-                      key={img.id}
-                      className="bg-[#0B1117] border border-[#263946] rounded-xl overflow-hidden shadow group"
-                    >
-                      <div className="h-40 bg-[#131D26] relative overflow-hidden">
-                        <img
-                          src={img.url}
-                          alt={img.description}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <span className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold bg-[#0B1117]/80 backdrop-blur text-[#18C7D9] border border-[#263946]">
-                          {EVIDENCE_CATEGORIES.find((c) => c.id === img.category)?.label || img.category}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveImage(img.id)}
-                          className="absolute top-2 right-2 p-1.5 rounded-lg bg-[#FF5A4F]/80 hover:bg-[#FF5A4F] text-[#F4F7F8] transition-colors"
-                          title="Eliminar fotografía"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
 
-                      <div className="p-3 space-y-1">
-                        <p className="text-xs font-semibold text-[#F4F7F8] truncate">
-                          {img.description}
-                        </p>
-                        <p className="text-[10px] text-[#A8B6C1]">
-                          {new Date(img.uploadedAt).toLocaleTimeString('es-ES', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
-                      </div>
-                    </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Pastillas delanteras Ferodo FDB1649',
+                    'Discos ventilados Brembo 09.9145.11',
+                    'Bomba de agua Gates WP0034',
+                    'Bujías NGK Laser Iridium ILZKR7B-11',
+                    'Líquido de frenos DOT4 Motul 500ml',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setPartsReplacedNotes((prev) =>
+                          prev ? `${prev}\n• ${preset}` : `• ${preset}`,
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#131D26] hover:bg-[#1A2530] border border-white/10 hover:border-[#00CCF2]/40 text-[11px] text-[#A8B6C1] hover:text-[#F4F7F8] transition-colors"
+                    >
+                      + {preset.split(' ')[0]} {preset.split(' ')[1]}
+                    </button>
                   ))}
                 </div>
-              )}
+
+                <textarea
+                  rows={4}
+                  placeholder="Ejemplo:&#10;• Pastillas de freno delanteras Ferodo Eco-Friction (Ref: FDB1789) - 1 juego&#10;• Líquido refrigerante orgánico 50% G13 rosa (2.5 litros)&#10;• Correa de accesorios Continental 6PK1190"
+                  value={partsReplacedNotes}
+                  onChange={(e) => setPartsReplacedNotes(e.target.value)}
+                  className="w-full bg-[#131D26] border border-[#263946] focus:border-[#00CCF2] rounded-xl p-3.5 text-xs text-[#F4F7F8] placeholder-[#A8B6C1]/40 outline-none resize-none leading-relaxed font-mono"
+                />
+              </div>
+
+              {/* Observaciones Técnicas & Mediciones */}
+              <div className="p-5 rounded-2xl bg-[#0B1117] border border-[#263946] space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-[#F4F7F8] flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-[#18C7D9]" />
+                    <span>Observaciones Técnicas, Diagnóstico OBD y Mediciones</span>
+                  </label>
+                  <span className="text-[10px] text-[#9AA8B6]">
+                    Voltajes, presión de neumáticos, escaneo y tolerancias
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    'Escaneo OBD2 sin códigos de error (DTC 0)',
+                    'Batería: 12.6V reposo / 14.2V con alternador',
+                    'Presión neumáticos: 32 PSI del. / 30 PSI tras.',
+                    'Espesor pastillas remanentes: 8 mm',
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setTechnicalObservations((prev) =>
+                          prev ? `${prev}\n• ${preset}` : `• ${preset}`,
+                        );
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-[#131D26] hover:bg-[#1A2530] border border-white/10 hover:border-[#18C7D9]/40 text-[11px] text-[#A8B6C1] hover:text-[#F4F7F8] transition-colors"
+                    >
+                      + {preset.split(':')[0]}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={4}
+                  placeholder="Ejemplo:&#10;• Batería: 12.7V en reposo, 14.1V cargando con alternador. Estado de salud SOH: 94%&#10;• Escaneo OBD-II: Memoria de averías limpia en ECM, TCM y ABS&#10;• Presión de neumáticos calibrada a 32 PSI en frío. Desgaste parejo."
+                  value={technicalObservations}
+                  onChange={(e) => setTechnicalObservations(e.target.value)}
+                  className="w-full bg-[#131D26] border border-[#263946] focus:border-[#18C7D9] rounded-xl p-3.5 text-xs text-[#F4F7F8] placeholder-[#A8B6C1]/40 outline-none resize-none leading-relaxed font-mono"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -1121,10 +1058,54 @@ export const ServiceOrderForm: React.FC<ServiceOrderFormProps> = ({
                   )}
                 </div>
 
-                <div className="flex items-center justify-between text-[#A8B6C1] pt-1">
-                  <span>Evidencia adjunta: {evidenceImages.length} fotografías</span>
+                {(partsReplacedNotes || technicalObservations) && (
+                  <div className="p-3 rounded-xl bg-[#131D26] space-y-2 border border-white/5">
+                    {partsReplacedNotes && (
+                      <div>
+                        <span className="font-bold text-[#00CCF2] block mb-1">Repuestos y Piezas:</span>
+                        <p className="text-[#F4F7F8] font-mono text-[11px] whitespace-pre-wrap">
+                          {partsReplacedNotes}
+                        </p>
+                      </div>
+                    )}
+                    {technicalObservations && (
+                      <div className={partsReplacedNotes ? 'pt-2 border-t border-white/5' : ''}>
+                        <span className="font-bold text-[#18C7D9] block mb-1">Diagnóstico / Mediciones:</span>
+                        <p className="text-[#F4F7F8] font-mono text-[11px] whitespace-pre-wrap">
+                          {technicalObservations}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[#A8B6C1] pt-1">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-[#00CCF2]">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    Registro técnico: 100% texto (Sin fotos, optimizado)
+                  </span>
                   <span>Responsable: {storageRepository.getCurrentUser().displayName}</span>
                 </div>
+
+                {existingOrder && (
+                  <div className="pt-3 border-t border-[#263946] flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        downloadOrderPdf(
+                          existingOrder,
+                          vehicle,
+                          client,
+                          storageRepository.getCurrentWorkshop().name,
+                        );
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#00CCF2]/15 hover:bg-[#00CCF2]/25 text-[#00CCF2] border border-[#00CCF2]/30 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      <span>Descargar Informe Técnico de esta Orden (PDF)</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

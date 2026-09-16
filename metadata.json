@@ -1,6 +1,6 @@
 {
   "name": "V-LA Taller Mecánico",
   "description": "Sistema operativo de gestión automotriz, recepción por matrícula, historial técnico y control de órdenes de servicio para V-LA Taller Mecánico.",
-  "requestFramePermissions": ["camera"],
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -6,7 +6,6 @@ import {
   Droplet,
   Filter,
   Wrench,
-  Camera,
   ChevronDown,
   ChevronUp,
   User,
@@ -17,15 +16,16 @@ import {
   CheckCircle2,
   AlertTriangle,
   HelpCircle,
-  X,
-  Maximize2,
   ArrowRight,
   ExternalLink,
   Sparkles,
   Zap,
+  FileDown,
+  Printer,
 } from 'lucide-react';
-import { Client, EvidenceImage, OrderStatus, ServiceOrder, Vehicle } from '../types';
+import { Client, OrderStatus, ServiceOrder, Vehicle } from '../types';
 import { storageRepository } from '../services/storageRepository';
+import { downloadOrderPdf, downloadVehicleHistoryPdf } from '../utils/pdfGenerator';
 
 interface VehicleHistoryViewProps {
   initialVehicleId?: string;
@@ -47,7 +47,6 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
   const [filterFilters, setFilterFilters] = useState<string>('all');
   const [searchWork, setSearchWork] = useState<string>('');
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
-  const [lightboxImage, setLightboxImage] = useState<EvidenceImage | null>(null);
 
   const historyData = selectedVehicleId
     ? storageRepository.getVehicleHistory(selectedVehicleId)
@@ -189,15 +188,35 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
           </select>
         </div>
 
-        <button
-          type="button"
-          id="btn-history-new-order"
-          onClick={() => onNewOrder(vehicle, client)}
-          className="px-5 py-2.5 bg-[#00CCF2] hover:bg-[#00CCF2]/90 text-[#0D0D0D] text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(0,204,242,0.3)] cursor-pointer"
-        >
-          <PlusCircle className="w-4 h-4" />
-          <span>Nueva Orden para este Coche</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            id="btn-download-vehicle-history-pdf"
+            onClick={() => {
+              downloadVehicleHistoryPdf(
+                vehicle,
+                client,
+                orders,
+                storageRepository.getCurrentWorkshop().name,
+              );
+            }}
+            className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-[#F4F7F8] border border-white/20 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm hover:border-[#00CCF2]/50"
+            title="Descargar informe completo del historial en PDF"
+          >
+            <FileDown className="w-4 h-4 text-[#00CCF2]" />
+            <span>Descargar Historial (PDF)</span>
+          </button>
+
+          <button
+            type="button"
+            id="btn-history-new-order"
+            onClick={() => onNewOrder(vehicle, client)}
+            className="px-5 py-2.5 bg-[#00CCF2] hover:bg-[#00CCF2]/90 text-[#0D0D0D] text-xs font-black rounded-xl flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(0,204,242,0.3)] cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4" />
+            <span>Nueva Orden para este Coche</span>
+          </button>
+        </div>
       </div>
 
       {/* Vehicle Header Specs Card (Porsche / Tech style from Image 1 & 3) */}
@@ -206,7 +225,7 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
           <div className="flex items-start gap-4">
             <div className="px-5 py-3.5 rounded-2xl bg-[#0D0D0D] border-2 border-[#00CCF2] shadow-[0_0_20px_rgba(0,204,242,0.25)] shrink-0">
               <span className="text-[10px] bg-[#00CCF2] text-[#0D0D0D] font-black px-2 py-0.5 rounded block text-center mb-1 font-mono">
-                ES
+                AR
               </span>
               <span className="font-mono text-2xl sm:text-3xl font-black text-[#F4F7F8] tracking-widest">
                 {vehicle.licensePlate}
@@ -452,11 +471,29 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 self-end sm:self-center">
+                      <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center">
                         <div className="flex items-center gap-2">
                           {renderSegmentBadge('Aceite', order.oil.done)}
                           {renderSegmentBadge('Filtros', order.filters.done)}
                         </div>
+                        <button
+                          type="button"
+                          id={`btn-download-order-pdf-${order.id}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadOrderPdf(
+                              order,
+                              vehicle,
+                              client,
+                              storageRepository.getCurrentWorkshop().name,
+                            );
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-[#00CCF2]/10 hover:bg-[#00CCF2]/20 text-[#00CCF2] border border-[#00CCF2]/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                          title="Descargar informe técnico de esta visita en PDF"
+                        >
+                          <FileDown className="w-3.5 h-3.5" />
+                          <span className="text-[11px] font-mono font-bold">PDF</span>
+                        </button>
                         <div className="p-2 rounded-xl bg-white/5 text-[#9AA8B6] group-hover:text-[#00CCF2] transition-colors">
                           {isExpanded ? (
                             <ChevronUp className="w-5 h-5" />
@@ -550,38 +587,53 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
                           </div>
                         )}
 
-                        {/* Photographic Evidence Gallery */}
-                        {order.evidence && order.evidence.length > 0 && (
-                          <div className="space-y-3">
-                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00CCF2] flex items-center gap-2">
-                              <Camera className="w-4 h-4" />
-                              <span>EVIDENCIA FOTOGRÁFICA CERTIFICADA ({order.evidence.length})</span>
+                        {/* Replaced Parts Details (Written technical info) */}
+                        {order.mechanicalWork.partsReplacedNotes && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#00CCF2] block">
+                              DETALLE DE REPUESTOS Y PIEZAS SUSTITUIDAS
                             </span>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                              {order.evidence.map((img) => (
-                                <div
-                                  key={img.id}
-                                  onClick={() => setLightboxImage(img)}
-                                  className="relative group/img overflow-hidden rounded-2xl border border-white/10 aspect-video cursor-pointer bg-[#0D0D0D]"
-                                >
-                                  <img
-                                    src={img.url}
-                                    alt={img.description}
-                                    referrerPolicy="no-referrer"
-                                    className="w-full h-full object-cover transition-transform duration-300 group-hover/img:scale-110"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D] via-transparent to-transparent opacity-80" />
-                                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[10px] text-[#F4F7F8]">
-                                    <span className="capitalize font-bold bg-[#0D0D0D]/80 px-2 py-0.5 rounded">
-                                      {img.category}
-                                    </span>
-                                    <Maximize2 className="w-3.5 h-3.5 text-[#00CCF2]" />
-                                  </div>
-                                </div>
-                              ))}
+                            <div className="p-4 rounded-2xl bg-[#0D0D0D]/80 border border-white/10 text-xs text-[#F4F7F8] leading-relaxed font-sans whitespace-pre-wrap">
+                              {order.mechanicalWork.partsReplacedNotes}
                             </div>
                           </div>
                         )}
+
+                        {/* Technical Observations */}
+                        {order.mechanicalWork.technicalObservations && (
+                          <div className="space-y-2">
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#9AA8B6] block">
+                              OBSERVACIONES TÉCNICAS DEL TALLER
+                            </span>
+                            <div className="p-4 rounded-2xl bg-[#0D0D0D]/80 border border-white/10 text-xs text-[#9AA8B6] leading-relaxed font-sans whitespace-pre-wrap">
+                              {order.mechanicalWork.technicalObservations}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Download PDF button inside expanded detail */}
+                        <div className="pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="text-xs text-[#9AA8B6] flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-[#00CCF2]" />
+                            <span>Registro técnico 100% digital y optimizado para entrega al cliente.</span>
+                          </div>
+                          <button
+                            type="button"
+                            id={`btn-download-order-pdf-expanded-${order.id}`}
+                            onClick={() => {
+                              downloadOrderPdf(
+                                order,
+                                vehicle,
+                                client,
+                                storageRepository.getCurrentWorkshop().name,
+                              );
+                            }}
+                            className="w-full sm:w-auto px-4 py-2 bg-[#00CCF2]/15 hover:bg-[#00CCF2]/25 text-[#00CCF2] border border-[#00CCF2]/40 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+                          >
+                            <FileDown className="w-4 h-4" />
+                            <span>Descargar Informe de esta Orden (PDF)</span>
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -591,40 +643,6 @@ export const VehicleHistoryView: React.FC<VehicleHistoryViewProps> = ({
           </div>
         )}
       </div>
-
-      {/* Lightbox Modal for Full-Resolution Photo Inspection */}
-      {lightboxImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-2xl animate-in fade-in"
-          onClick={() => setLightboxImage(null)}
-        >
-          <div
-            className="relative max-w-4xl w-full rounded-3xl glass-panel border border-white/20 p-4 space-y-3 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2 border-b border-white/10">
-              <span className="text-xs font-mono font-bold text-[#00CCF2] uppercase tracking-wider">
-                CATEGORÍA: {lightboxImage.category}
-              </span>
-              <button
-                onClick={() => setLightboxImage(null)}
-                className="p-1.5 rounded-full bg-white/10 text-[#F4F7F8] hover:bg-white/20 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="max-h-[75vh] flex items-center justify-center overflow-hidden rounded-2xl bg-black">
-              <img
-                src={lightboxImage.url}
-                alt={lightboxImage.description}
-                referrerPolicy="no-referrer"
-                className="max-h-[75vh] w-auto object-contain"
-              />
-            </div>
-            <p className="text-xs text-[#9AA8B6] italic">{lightboxImage.description}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

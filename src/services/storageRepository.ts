@@ -17,39 +17,54 @@ import {
 
 export function normalizeLicensePlate(input: string): string {
   if (!input) return '';
-  // Convert to uppercase, remove extra spaces and characters that are not letters, digits, or hyphen
+  // Convert to uppercase, remove extra spaces, hyphens, and any non-alphanumeric characters
   return input
     .toUpperCase()
     .replace(/[^A-Z0-9]/g, '')
     .trim();
 }
 
+/**
+ * En Argentina las patentes se ingresan y visualizan SIN guión:
+ * - Formato Tradicional: 3 letras y 3 números (ej. VLA481, VLA321)
+ * - Formato Mercosur: 2 letras, 3 números y 2 letras (ej. AA123BB, AA156BB)
+ */
 export function formatDisplayPlate(normalized: string): string {
   if (!normalized) return '';
-  // If standard 6-7 chars, format with hyphen for visual beauty (e.g. ABC1234 -> ABC-1234 or 1234XYZ -> 1234-XYZ)
-  if (normalized.length === 6) {
-    return `${normalized.slice(0, 3)}-${normalized.slice(3)}`;
-  }
-  if (normalized.length === 7) {
-    return `${normalized.slice(0, 3)}-${normalized.slice(3)}`;
-  }
-  return normalized;
+  return normalizeLicensePlate(normalized);
+}
+
+/**
+ * Valida si cumple con alguno de los dos formatos oficiales de patentes en Argentina
+ */
+export function isValidArgentinePlate(input: string): boolean {
+  const clean = normalizeLicensePlate(input);
+  // Formato Tradicional: 3 letras + 3 dígitos (ej. VLA481, VLA321)
+  const isTraditional = /^[A-Z]{3}[0-9]{3}$/.test(clean);
+  // Formato Mercosur: 2 letras + 3 dígitos + 2 letras (ej. AA123BB, AA156BB)
+  const isMercosur = /^[A-Z]{2}[0-9]{3}[A-Z]{2}$/.test(clean);
+  return isTraditional || isMercosur;
 }
 
 // Initial Mock Workshops
 export const OFFICIAL_WORKSHOP_MAPS_URL = 'https://maps.app.goo.gl/7aJDCHTASg3yeJ5o9';
+
+export const formatARS = (amount: number): string => {
+  return `$ ${Number(amount || 0).toLocaleString('es-AR')}`;
+};
 
 export const INITIAL_WORKSHOPS: Workshop[] = [
   {
     id: 'workshop-vla-01',
     name: 'V-LA Taller Mecánico - Sede Central',
     businessName: 'V-LA Automotriz S.A.',
-    phoneWhatsApp: '+34 611 234 567',
+    phoneWhatsApp: '+54 351 242 2637',
     email: 'contacto@vlataller.com',
-    address: 'V-LA Taller Mecánico',
+    address: 'V-LA Taller Mecánico, Córdoba, Argentina',
     schedule: 'Lunes a Viernes 08:00 - 19:00 | Sábados 08:30 - 13:30',
-    currency: 'EUR',
+    currency: 'ARS',
     googleMapsUrl: OFFICIAL_WORKSHOP_MAPS_URL,
+    publishAddress: true,
     createdAt: '2025-01-10T08:00:00.000Z',
   },
   {
@@ -60,13 +75,22 @@ export const INITIAL_WORKSHOPS: Workshop[] = [
     email: 'admin@nortemotors.es',
     address: 'Calle del Motor 12, Zona Norte',
     schedule: 'Lunes a Viernes 09:00 - 18:00',
-    currency: 'EUR',
+    currency: 'ARS',
     googleMapsUrl: OFFICIAL_WORKSHOP_MAPS_URL,
+    publishAddress: true,
     createdAt: '2025-02-01T08:00:00.000Z',
   },
 ];
 
 export const INITIAL_USERS: UserProfile[] = [
+  {
+    uid: 'usr-admin-vla',
+    username: 'ADMIN',
+    displayName: 'ADMIN (Administrador General)',
+    email: 'admin@vlataller.com',
+    role: 'admin',
+    workshopId: 'workshop-vla-01',
+  },
   {
     uid: 'usr-admin-01',
     displayName: 'Carlos V. (Gerente Admin)',
@@ -141,8 +165,8 @@ const SAMPLE_VEHICLES: Vehicle[] = [
     id: 'veh-001',
     workshopId: 'workshop-vla-01',
     clientId: 'cli-001',
-    licensePlate: 'VLA-4821',
-    licensePlateNormalized: 'VLA4821',
+    licensePlate: 'VLA481',
+    licensePlateNormalized: 'VLA481',
     brand: 'Volkswagen',
     model: 'Golf GTI',
     version: '2.0 TSI Performance DSG 245cv',
@@ -157,8 +181,8 @@ const SAMPLE_VEHICLES: Vehicle[] = [
     id: 'veh-002',
     workshopId: 'workshop-vla-01',
     clientId: 'cli-002',
-    licensePlate: '7892-KTX',
-    licensePlateNormalized: '7892KTX',
+    licensePlate: 'AA123BB',
+    licensePlateNormalized: 'AA123BB',
     brand: 'Toyota',
     model: 'RAV4 Hybrid',
     version: '2.5 Dynamic Force AWD Advance',
@@ -173,8 +197,8 @@ const SAMPLE_VEHICLES: Vehicle[] = [
     id: 'veh-003',
     workshopId: 'workshop-vla-01',
     clientId: 'cli-003',
-    licensePlate: 'MEC-9102',
-    licensePlateNormalized: 'MEC9102',
+    licensePlate: 'AB456CD',
+    licensePlateNormalized: 'AB456CD',
     brand: 'Audi',
     model: 'A4 Avant',
     version: '40 TDI S line S tronic quattro',
@@ -189,8 +213,8 @@ const SAMPLE_VEHICLES: Vehicle[] = [
     id: 'veh-004-other',
     workshopId: 'workshop-test-02',
     clientId: 'cli-004-other',
-    licensePlate: 'NOR-9999',
-    licensePlateNormalized: 'NOR9999',
+    licensePlate: 'VLA321',
+    licensePlateNormalized: 'VLA321',
     brand: 'Peugeot',
     model: '3008',
     version: '1.2 PureTech Allure',
@@ -210,8 +234,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-001',
     clientId: 'cli-001',
-    licensePlate: 'VLA-4821',
-    licensePlateNormalized: 'VLA4821',
+    licensePlate: 'VLA481',
+    licensePlateNormalized: 'VLA481',
     entryDate: '2025-04-10T10:15:00.000Z',
     entryMileage: 38200,
     exitMileage: 38210,
@@ -235,23 +259,12 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
         'Se realizó vaciado completo de aceite motor por tapón inferior con cambio de arandela. Sustitución de cartucho filtrante de aceite y filtro de aire de admisión. Desinfección de evaporador y cambio de filtro de polen antialérgeno. Chequeo de espesor de discos y pastillas (delanteras a 75%, traseras a 80%). Nivelación de líquido refrigerante G12evo.',
       futureRecommendations:
         'Sustitución de bujías de encendido recomendada a los 60.000 km. Neumáticos delanteros con 4.5 mm restantes.',
+      partsReplacedNotes:
+        '1x Filtro Aceite Mann HU 6013 z (nuevo montado; usado presentaba suciedad habitual de 10.000 km). 1x Filtro Aire C 30 005. 1x Filtro Polen FP 26 009. 5.7L Aceite Castrol EDGE 0W-20 con especificación VW 508.00.',
+      technicalObservations:
+        'Vano motor sin fugas en retenes ni manguitos. Batería AGM verificada en 12.6V en reposo. Par de apriete de tapón cárter a 30 Nm según manual de taller.',
     },
-    evidence: [
-      {
-        id: 'ev-1',
-        url: 'https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&w=800&q=80',
-        description: 'Inspección de vano motor en elevador previa a intervención.',
-        category: 'recepcion',
-        uploadedAt: '2025-04-10T10:30:00.000Z',
-      },
-      {
-        id: 'ev-2',
-        url: 'https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&w=800&q=80',
-        description: 'Filtro de aire reemplazado nuevo vs usado con saturación.',
-        category: 'pieza_dañada',
-        uploadedAt: '2025-04-10T11:45:00.000Z',
-      },
-    ],
+    evidence: [],
     status: 'cerrado',
     statusHistory: [
       {
@@ -302,8 +315,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-001',
     clientId: 'cli-001',
-    licensePlate: 'VLA-4821',
-    licensePlateNormalized: 'VLA4821',
+    licensePlate: 'VLA481',
+    licensePlateNormalized: 'VLA481',
     entryDate: '2025-08-22T10:15:00.000Z',
     entryMileage: 48500,
     visitReason: 'Ruido metálico leve al frenar a baja velocidad y chequeo de suspensión.',
@@ -319,16 +332,12 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
         'Desmontaje de pinzas de freno traseras. Limpieza por ultrasonido y engrase de guías con grasa cerámica para alta temperatura. Las pastillas aún tenían 6 mm pero presentaban cristalización superficial. Rectificado de rebabas y purga de circuito.',
       futureRecommendations:
         'Próximo servicio regular de aceite y filtros previsto a los 53.000 km.',
+      partsReplacedNotes:
+        'No se requirió reemplazo de pastillas (grosor remanente 6.2 mm con vida útil adecuada). Se aplicaron consumibles: Grasa cerámica para frenos Liqui Moly 50g y 500ml de Líquido de Frenos DOT 4 Bosch.',
+      technicalObservations:
+        'Discos de freno traseros medidos en micrómetro: 11.4 mm (espesor mínimo homologado: 10.0 mm). Rodamientos de rueda sin juego ni zumbido.',
     },
-    evidence: [
-      {
-        id: 'ev-3',
-        url: 'https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&w=800&q=80',
-        description: 'Guías de pinza trasera con restos de suciedad antes de limpieza.',
-        category: 'trabajo',
-        uploadedAt: '2025-08-22T11:20:00.000Z',
-      },
-    ],
+    evidence: [],
     status: 'cerrado',
     statusHistory: [
       {
@@ -362,8 +371,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-002',
     clientId: 'cli-002',
-    licensePlate: '7892-KTX',
-    licensePlateNormalized: '7892KTX',
+    licensePlate: 'AA123BB',
+    licensePlateNormalized: 'AA123BB',
     entryDate: '2025-09-02T16:40:00.000Z',
     entryMileage: 64200,
     visitReason: 'Mantenimiento de 60.000 km, comprobación del sistema híbrido y filtros.',
@@ -386,16 +395,12 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
         'Sustitución de lubricante de motor con viscosidad ultra baja recomendada para ciclo Atkinson. Lectura de parámetros de batería híbrida con scanner: celdas balanceadas con desviación inferior a 0.02V. Limpieza de conductos de refrigeración del pack de baterías.',
       futureRecommendations:
         'Verificar líquido de frenos DOT 4 en próxima visita de primavera.',
+      partsReplacedNotes:
+        'Filtro de aceite original Toyota 04152-YZZA6, Filtro de aire 17801-F0020, Filtro de habitáculo Denso carbon activado. 4.2L Aceite sintético 0W-16 Motul Hybrid.',
+      technicalObservations:
+        'Comprobación del inversor y circuito de alta tensión sin fugas de aislamiento. Inyector de bypass y bujías revisadas sin depósitos anómalos.',
     },
-    evidence: [
-      {
-        id: 'ev-4',
-        url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=800&q=80',
-        description: 'Vehículo en zona de diagnóstico híbrido conectado a banco de prueba.',
-        category: 'recepcion',
-        uploadedAt: '2025-09-02T16:50:00.000Z',
-      },
-    ],
+    evidence: [],
     status: 'listo',
     statusHistory: [
       {
@@ -437,8 +442,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-003',
     clientId: 'cli-003',
-    licensePlate: 'MEC-9102',
-    licensePlateNormalized: 'MEC9102',
+    licensePlate: 'AB456CD',
+    licensePlateNormalized: 'AB456CD',
     entryDate: '2025-09-12T08:30:00.000Z',
     entryMileage: 35100,
     visitReason: 'Testigo de control de emisiones encendido intermitente y pérdida de potencia en alta.',
@@ -456,16 +461,12 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
         'Diagnóstico OBD con código P2002 (eficiencia de filtro de partículas diésel). Se detectó sensor diferencial de presión con lectura errática. Se sustituye sensor y se fuerza regeneración estática en banco.',
       futureRecommendations:
         'Se recomienda realizar ciclo en autopista a más de 2.500 rpm durante 20 minutos tras entrega.',
+      partsReplacedNotes:
+        'Sensor de presión diferencial DPF Bosch ref 0281006005 sustituido. Filtro de gasoil UFI montado con purga electrónica del circuito de combustible.',
+      technicalObservations:
+        'Saturación de hollín post-regeneración reducida al 6%. Presión diferencial en ralentí estable a 4 hPa. Tensión de alternador a 14.4V.',
     },
-    evidence: [
-      {
-        id: 'ev-5',
-        url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&w=800&q=80',
-        description: 'Sensor diferencial defectuoso desmontado para comprobación.',
-        category: 'pieza_dañada',
-        uploadedAt: '2025-09-12T09:40:00.000Z',
-      },
-    ],
+    evidence: [],
     status: 'en trabajo',
     statusHistory: [
       {
@@ -506,8 +507,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     workshopId: 'workshop-test-02',
     vehicleId: 'veh-004-other',
     clientId: 'cli-004-other',
-    licensePlate: 'NOR-9999',
-    licensePlateNormalized: 'NOR9999',
+    licensePlate: 'VLA321',
+    licensePlateNormalized: 'VLA321',
     entryDate: '2025-08-15T09:00:00.000Z',
     entryMileage: 78000,
     visitReason: 'Cambio de pastillas delanteras.',
@@ -516,6 +517,8 @@ const SAMPLE_ORDERS: ServiceOrder[] = [
     mechanicalWork: {
       description: 'Trabajo en Taller Norte SL',
       futureRecommendations: '',
+      partsReplacedNotes: 'Juego de pastillas de freno delanteras Brembo P61066.',
+      technicalObservations: 'Inspección ocular conforme.',
     },
     evidence: [],
     status: 'cerrado',
@@ -532,7 +535,7 @@ const SAMPLE_REMINDERS: Reminder[] = [
     id: 'rem-001',
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-001',
-    licensePlate: 'VLA-4821',
+    licensePlate: 'VLA481',
     clientName: 'Alejandro Morales Silva',
     clientWhatsApp: '+34 622 458 910',
     title: 'Próximo cambio de bujías (60.000 km)',
@@ -546,7 +549,7 @@ const SAMPLE_REMINDERS: Reminder[] = [
     id: 'rem-002',
     workshopId: 'workshop-vla-01',
     vehicleId: 'veh-002',
-    licensePlate: '7892-KTX',
+    licensePlate: 'AA123BB',
     clientName: 'Beatriz Quintana Vega',
     clientWhatsApp: '+34 633 112 244',
     title: 'Revisión semestral de líquido de frenos DOT 4',
@@ -568,7 +571,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'mantenimiento',
     description: 'Cambio de aceite 100% sintético según especificación OEM + sustitución de filtros de aceite, aire y habitáculo con chequeo multipunto de 25 elementos.',
     estimatedDurationMinutes: 60,
-    basePrice: 145,
+    basePrice: 145000,
     recommendedMileageInterval: 10000,
     requiresElevator: true,
     active: true,
@@ -583,7 +586,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'frenos',
     description: 'Desmontaje de pinzas, limpieza ultrasonido, engrase cerámico de guías, pastillas de baja emisión y purgado de circuito con fluido DOT 5.1 a presión compensada.',
     estimatedDurationMinutes: 75,
-    basePrice: 180,
+    basePrice: 180000,
     recommendedMileageInterval: 30000,
     requiresElevator: true,
     active: true,
@@ -598,7 +601,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'electronica',
     description: 'Escaneo con máquina de diagnosis OBD, lectura y borrado de averías registradas y reseteo del aviso de revisión en cuadro.',
     estimatedDurationMinutes: 45,
-    basePrice: 65,
+    basePrice: 65000,
     requiresElevator: false,
     active: true,
     createdAt: '2025-02-01T08:30:00.000Z',
@@ -612,7 +615,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'climatizacion',
     description: 'Recuperación de gas residual, prueba de vacío y estanqueidad por 20 minutos, inyección de aceite PAG y recarga de refrigerante ecológico.',
     estimatedDurationMinutes: 50,
-    basePrice: 95,
+    basePrice: 95000,
     requiresElevator: false,
     active: true,
     createdAt: '2025-02-10T11:00:00.000Z',
@@ -626,7 +629,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'suspension',
     description: 'Medición computarizada en bancada láser, ajuste de cotas de convergencia, avance y caída en ambos ejes para desgaste uniforme.',
     estimatedDurationMinutes: 60,
-    basePrice: 75,
+    basePrice: 75000,
     recommendedMileageInterval: 20000,
     requiresElevator: true,
     active: true,
@@ -641,7 +644,7 @@ export const SAMPLE_SERVICES: WorkshopService[] = [
     category: 'itv',
     description: 'Análisis de emisiones de 4 gases / opacidad diésel, frenómetro dinámico, holguras mecánicas de rótulas y reglaje óptico de faros.',
     estimatedDurationMinutes: 45,
-    basePrice: 55,
+    basePrice: 55000,
     requiresElevator: true,
     active: true,
     createdAt: '2025-02-20T09:00:00.000Z',
@@ -688,13 +691,13 @@ export const SAMPLE_APPOINTMENTS: AppointmentSlot[] = [
     clientName: 'Alejandro Morales Silva',
     clientPhone: '+34 622 458 910',
     clientEmail: 'amorales.silva@email.com',
-    licensePlate: 'VLA-4821',
+    licensePlate: 'VLA481',
     serviceId: 'svc-001',
     serviceName: 'Mantenimiento Preventivo 10.000 km',
     notes: 'Revisión rápida de nivel de refrigerante antes de entrega.',
     status: 'reservado',
     googleEventId: 'gcal-evt-101',
-    googleCalendarLink: 'https://calendar.google.com/calendar/r/eventedit?text=Mantenimiento+VLA-4821',
+    googleCalendarLink: 'https://calendar.google.com/calendar/r/eventedit?text=Mantenimiento+VLA481',
     createdAt: '2026-09-12T10:00:00.000Z',
   },
   {
@@ -706,29 +709,29 @@ export const SAMPLE_APPOINTMENTS: AppointmentSlot[] = [
     clientName: 'Beatriz Quintana Vega',
     clientPhone: '+34 633 112 244',
     clientEmail: 'b.quintana@gmail.com',
-    licensePlate: '7892-KTX',
+    licensePlate: 'AA123BB',
     serviceId: 'svc-003',
     serviceName: 'Diagnosis Electrónica & Lectura OBD',
-    notes: 'Lectura y borrado de aviso de mantenimiento en Volkswagen Golf GTI.',
+    notes: 'Lectura y borrado de aviso de mantenimiento en Toyota RAV4.',
     status: 'reservado',
     googleEventId: 'gcal-evt-102',
-    googleCalendarLink: 'https://calendar.google.com/calendar/r/eventedit?text=Diagnosis+7892-KTX',
+    googleCalendarLink: 'https://calendar.google.com/calendar/r/eventedit?text=Diagnosis+AA123BB',
     createdAt: '2026-09-12T14:30:00.000Z',
   },
 ];
 
 const STORAGE_KEYS = {
-  WORKSHOPS: 'vla_workshops_v1',
-  CLIENTS: 'vla_clients_v1',
-  VEHICLES: 'vla_vehicles_v1',
-  ORDERS: 'vla_orders_v1',
-  REMINDERS: 'vla_reminders_v1',
-  SERVICES: 'vla_services_v1',
-  SCHEDULES: 'vla_schedules_v1',
-  APPOINTMENTS: 'vla_appointments_v1',
-  GCAL_STATUS: 'vla_gcal_status_v1',
-  CURRENT_WORKSHOP_ID: 'vla_current_workshop_id',
-  CURRENT_USER_UID: 'vla_current_user_uid',
+  WORKSHOPS: 'vla_workshops_v2',
+  CLIENTS: 'vla_clients_v2',
+  VEHICLES: 'vla_vehicles_v2',
+  ORDERS: 'vla_orders_v2',
+  REMINDERS: 'vla_reminders_v2',
+  SERVICES: 'vla_services_v2',
+  SCHEDULES: 'vla_schedules_v2',
+  APPOINTMENTS: 'vla_appointments_v2',
+  GCAL_STATUS: 'vla_gcal_status_v2',
+  CURRENT_WORKSHOP_ID: 'vla_current_workshop_id_v2',
+  CURRENT_USER_UID: 'vla_current_user_uid_v2',
 };
 
 class StorageRepository {
@@ -760,11 +763,18 @@ class StorageRepository {
     try {
       const storedWorkshops = localStorage.getItem(STORAGE_KEYS.WORKSHOPS);
       this.workshops = storedWorkshops ? JSON.parse(storedWorkshops) : INITIAL_WORKSHOPS;
-      // Ensure googleMapsUrl is present on all workshops
+      // Ensure googleMapsUrl, publishAddress and ARS currency are present on all workshops
       this.workshops.forEach((ws) => {
         if (!ws.googleMapsUrl || ws.id === 'workshop-vla-01') {
-          ws.googleMapsUrl = OFFICIAL_WORKSHOP_MAPS_URL;
+          ws.googleMapsUrl = ws.googleMapsUrl || OFFICIAL_WORKSHOP_MAPS_URL;
         }
+        if (ws.publishAddress === undefined) {
+          ws.publishAddress = true;
+        }
+        if (!ws.address || ws.address === 'V-LA Taller Mecánico') {
+          ws.address = 'V-LA Taller Mecánico, Córdoba, Argentina';
+        }
+        ws.currency = 'ARS';
       });
 
       const storedClients = localStorage.getItem(STORAGE_KEYS.CLIENTS);
@@ -781,6 +791,12 @@ class StorageRepository {
 
       const storedServices = localStorage.getItem(STORAGE_KEYS.SERVICES);
       this.services = storedServices ? JSON.parse(storedServices) : SAMPLE_SERVICES;
+      // Ensure prices are in Argentine Pesos (convert legacy demo values)
+      this.services.forEach((s) => {
+        if (s.basePrice < 1000) {
+          s.basePrice = s.basePrice * 1000;
+        }
+      });
 
       const storedSchedules = localStorage.getItem(STORAGE_KEYS.SCHEDULES);
       this.schedules = storedSchedules ? JSON.parse(storedSchedules) : [DEFAULT_WEEKLY_SCHEDULE];
@@ -801,6 +817,18 @@ class StorageRepository {
       const storedUId = localStorage.getItem(STORAGE_KEYS.CURRENT_USER_UID);
       if (storedUId && INITIAL_USERS.some((u) => u.uid === storedUId)) {
         this.currentUserUid = storedUId;
+      }
+
+      const storedAuthSession = localStorage.getItem('vla_auth_session');
+      if (storedAuthSession) {
+        try {
+          const session = JSON.parse(storedAuthSession);
+          if (session?.uid && INITIAL_USERS.some((u) => u.uid === session.uid)) {
+            this.currentUserUid = session.uid;
+          }
+        } catch (_) {
+          // ignore parsing error
+        }
       }
     } catch (e) {
       console.warn('LocalStorage error or unavailable, fallback to in-memory state', e);
@@ -844,6 +872,11 @@ class StorageRepository {
     this.persist();
   }
 
+  // License plate helper
+  public normalizeLicensePlate(input: string): string {
+    return normalizeLicensePlate(input);
+  }
+
   // Multi-Tenant workshop context
   public getWorkshops(): Workshop[] {
     return this.workshops;
@@ -852,6 +885,30 @@ class StorageRepository {
   public getCurrentWorkshop(): Workshop {
     const found = this.workshops.find((w) => w.id === this.currentWorkshopId);
     return found || this.workshops[0];
+  }
+
+  public updateCurrentWorkshop(data: Partial<Workshop>): Workshop {
+    const ws = this.getCurrentWorkshop();
+    Object.assign(ws, data);
+    this.persist();
+    return ws;
+  }
+
+  public updateWorkshopAddress(
+    address: string,
+    googleMapsUrl?: string,
+    publishAddress?: boolean,
+  ): Workshop {
+    const ws = this.getCurrentWorkshop();
+    ws.address = address.trim();
+    if (googleMapsUrl !== undefined) {
+      ws.googleMapsUrl = googleMapsUrl.trim();
+    }
+    if (publishAddress !== undefined) {
+      ws.publishAddress = publishAddress;
+    }
+    this.persist();
+    return ws;
   }
 
   public switchWorkshop(workshopId: string) {
@@ -901,6 +958,69 @@ class StorageRepository {
       this.currentWorkshopId = user.workshopId;
       this.persist();
     }
+  }
+
+  // Authentication for Admin (User: ADMIN / Pass: PANCHO2026)
+  public authenticateUser(
+    usernameInput: string,
+    passwordInput: string,
+  ): { success: boolean; user?: UserProfile; message: string } {
+    const cleanUser = usernameInput.trim();
+    const cleanPass = passwordInput.trim();
+
+    // Check requested admin credentials
+    if (cleanUser.toUpperCase() === 'ADMIN' && cleanPass === 'PANCHO2026') {
+      const adminUser = INITIAL_USERS.find((u) => u.uid === 'usr-admin-vla') || {
+        uid: 'usr-admin-vla',
+        username: 'ADMIN',
+        displayName: 'ADMIN (Administrador General)',
+        email: 'admin@vlataller.com',
+        role: 'admin' as UserRole,
+        workshopId: 'workshop-vla-01',
+      };
+      this.currentUserUid = adminUser.uid;
+      this.currentWorkshopId = adminUser.workshopId;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'vla_auth_session',
+          JSON.stringify({
+            uid: adminUser.uid,
+            username: 'ADMIN',
+            role: 'admin',
+            timestamp: Date.now(),
+          }),
+        );
+      }
+      this.persist();
+      return {
+        success: true,
+        user: adminUser,
+        message: '¡Bienvenido, ADMIN! Acceso administrativo total desbloqueado.',
+      };
+    }
+
+    return {
+      success: false,
+      message: 'Credenciales inválidas. Usuario esperado: ADMIN | Contraseña: PANCHO2026',
+    };
+  }
+
+  public logoutUser(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('vla_auth_session');
+    }
+    const advisor = INITIAL_USERS.find(
+      (u) => u.workshopId === this.currentWorkshopId && u.role === 'advisor',
+    );
+    if (advisor) {
+      this.currentUserUid = advisor.uid;
+    }
+    this.persist();
+  }
+
+  public isUserAuthenticatedAsAdmin(): boolean {
+    const user = this.getCurrentUser();
+    return user.role === 'admin' && (user.username === 'ADMIN' || user.uid === 'usr-admin-vla');
   }
 
   // Security Check Helper: strictly enforces workshop isolation

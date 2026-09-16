@@ -28,11 +28,33 @@
     --text-secondary: #9AA8B6;
   }
 
+  /* Light Theme Variables */
+  html.light,
+  body.light,
+  .light {
+    --bg-main: #F4F6F8;
+    --surface-1: #FFFFFF;
+    --surface-2: #F8FAFC;
+    --surface-glass: rgba(255, 255, 255, 0.88);
+    --border-main: rgba(15, 23, 42, 0.08);
+    --border-highlight: rgba(0, 163, 196, 0.5);
+
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+  }
+
   body {
     background-color: #0D0D0D;
     color: #F4F7F8;
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+
+  html.light body,
+  body.light {
+    background-color: #F4F6F8;
+    color: #0F172A;
   }
 
   /* Custom scrollbar */
@@ -43,9 +65,15 @@
   ::-webkit-scrollbar-track {
     background: #0D0D0D;
   }
+  .light ::-webkit-scrollbar-track {
+    background: #F1F5F9;
+  }
   ::-webkit-scrollbar-thumb {
     background: #242830;
     border-radius: 9999px;
+  }
+  .light ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #00CCF2;
@@ -60,6 +88,12 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
 .glass-panel-hover {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -69,12 +103,21 @@
   transform: translateY(-2px);
   box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5), 0 0 24px -6px rgba(210, 248, 39, 0.15);
 }
+.light .glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 204, 242, 0.5);
+  box-shadow: 0 12px 30px -8px rgba(0, 0, 0, 0.08), 0 0 20px -4px rgba(0, 204, 242, 0.15);
+}
 
 .glass-pill {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.light .glass-pill {
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 .neon-glow {
@@ -92,3 +135,156 @@
     linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
 }
+.light .bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+}
+
+/* ================= LIGHT MODE COMPREHENSIVE ADAPTATIONS ================= */
+.light {
+  color-scheme: light;
+}
+
+/* Header & Footers */
+.light header#main-header {
+  background-color: rgba(244, 246, 248, 0.88) !important;
+  border-bottom-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+.light footer#app-footer {
+  background-color: rgba(244, 246, 248, 0.92) !important;
+  border-top-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Dark Surface Overrides */
+.light .bg-\[\#0D0D0D\],
+.light .bg-\[\#0D0D0D\]\/80,
+.light .bg-\[\#0D0D0D\]\/85,
+.light .bg-\[\#0D0D0D\]\/90,
+.light .bg-\[\#0D0D0D\]\/95 {
+  background-color: #F4F6F8 !important;
+}
+
+.light .bg-\[\#131416\],
+.light .bg-\[\#131416\]\/90,
+.light .bg-\[\#131416\]\/95 {
+  background-color: #FFFFFF !important;
+}
+
+.light .bg-\[\#1A1C20\],
+.light .bg-\[\#16181D\] {
+  background-color: #F8FAFC !important;
+}
+
+.light .bg-\[\#1A2634\],
+.light .bg-\[\#22252B\],
+.light .bg-\[\#141F2A\],
+.light .bg-\[\#202E3B\],
+.light .bg-\[\#1E222A\] {
+  background-color: #F1F5F9 !important;
+}
+
+.light .hover\:bg-\[\#22252B\]:hover {
+  background-color: #E2E8F0 !important;
+}
+
+.light .hover\:bg-white\/\[0\.04\]:hover,
+.light .hover\:bg-white\/\[0\.05\]:hover,
+.light .hover\:bg-white\/\[0\.06\]:hover,
+.light .hover\:bg-white\/10:hover,
+.light .hover\:bg-white\/15:hover {
+  background-color: rgba(15, 23, 42, 0.05) !important;
+}
+
+/* Text Overrides */
+.light .text-\[\#F4F7F8\],
+.light .text-white {
+  color: #0F172A !important;
+}
+
+/* Retain contrast inside buttons/badges with solid dark/colored backgrounds */
+.light .bg-\[\#00CCF2\] .text-\[\#0D0D0D\],
+.light button.bg-\[\#00CCF2\],
+.light .text-\[\#0D0D0D\] {
+  color: #0D0D0D !important;
+}
+
+.light .bg-\[\#F21616\],
+.light .bg-\[\#F27D16\],
+.light .bg-\[\#28C98B\],
+.light .bg-red-600,
+.light .bg-emerald-600,
+.light .bg-amber-600,
+.light .bg-blue-600 {
+  color: #FFFFFF !important;
+}
+
+.light .text-\[\#9AA8B6\] {
+  color: #475569 !important;
+}
+
+/* Subtle Borders in Light Mode */
+.light .border-white\/10,
+.light .border-white\/20,
+.light .border-white\/30,
+.light .border-white\/5,
+.light .border-white\/\[0\.08\],
+.light .border-white\/\[0\.06\],
+.light .border-white\/\[0\.12\],
+.light .border-white\/\[0\.1\],
+.light .border-white\/\[0\.15\] {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+/* Form Inputs, Selects, and Textareas */
+.light input:not([type="checkbox"]):not([type="radio"]),
+.light select,
+.light textarea {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+
+.light input:focus,
+.light select:focus,
+.light textarea:focus {
+  border-color: #00CCF2 !important;
+  box-shadow: 0 0 0 2px rgba(0, 204, 242, 0.2) !important;
+}
+
+.light input::placeholder,
+.light textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+/* Modals Backdrops */
+.light .bg-black\/80,
+.light .bg-black\/70,
+.light .bg-black\/60 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+}
+
+/* Dropdowns & Popovers */
+.light #dropdown-workshop-menu,
+.light #dropdown-role-menu,
+.light #dropdown-theme-menu {
+  background-color: #FFFFFF !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Light mode Aurora Orbs blending */
+.light #ambient-framer-background .blur-\[140px\],
+.light #ambient-framer-background .blur-\[160px\],
+.light #ambient-framer-background .blur-\[180px\] {
+  mix-blend-mode: multiply !important;
+  opacity: 0.08 !important;
+}
+
+/* Plate display badge in light mode */
+.light .bg-\[\#0D0D0D\].border-2.border-\[\#00CCF2\] {
+  background-color: #FFFFFF !important;
+  box-shadow: 0 4px 14px rgba(0, 204, 242, 0.2) !important;
+}
+

@@ -2,6 +2,7 @@ export type UserRole = 'admin' | 'advisor' | 'technician';
 
 export interface UserProfile {
   uid: string;
+  username?: string;
   email: string;
   displayName: string;
   role: UserRole;
@@ -19,6 +20,7 @@ export interface Workshop {
   schedule: string;
   currency: string;
   googleMapsUrl?: string;
+  publishAddress?: boolean;
   createdAt: string;
 }
 
@@ -101,6 +103,8 @@ export interface FiltersService {
 export interface MechanicalWork {
   description: string;
   futureRecommendations: string;
+  partsReplacedNotes?: string;
+  technicalObservations?: string;
 }
 
 export type EvidenceCategory =
@@ -133,7 +137,7 @@ export interface ServiceOrder {
   oil: OilService;
   filters: FiltersService;
   mechanicalWork: MechanicalWork;
-  evidence: EvidenceImage[];
+  evidence?: EvidenceImage[];
   status: OrderStatus;
   statusHistory: StatusTransition[];
   assignedTechnicianId?: string;

@@ -67,8 +67,9 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
   const availableVehicles = storageRepository.getVehicles();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawVal = e.target.value.toUpperCase();
-    setPlateInput(rawVal);
+    // Normalizar automáticamente al escribir o pegar: mayúsculas sin guiones ni caracteres especiales
+    const cleanVal = normalizeLicensePlate(e.target.value);
+    setPlateInput(cleanVal);
     if (hasSearched) {
       setHasSearched(false);
       setSearchResult(null);
@@ -82,7 +83,7 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
     const normalized = normalizeLicensePlate(query);
 
     if (!normalized) {
-      setErrorMessage('Por favor, introduzca una matrícula válida para buscar.');
+      setErrorMessage('Por favor, introduzca una patente válida para buscar (ej. VLA481 o AA123BB).');
       return;
     }
 
@@ -104,7 +105,7 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
       setShowRegisterForm(true);
       setFormData((prev) => ({
         ...prev,
-        licensePlate: formatDisplayPlate(normalized) || query.trim().toUpperCase(),
+        licensePlate: normalizeLicensePlate(normalized),
       }));
     }
   };
@@ -225,19 +226,22 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
         <div className="relative z-10 max-w-2xl mx-auto space-y-6">
           <div className="text-center space-y-2">
             <span className="text-xs font-mono font-bold tracking-widest text-[#00CCF2] uppercase">
-              PLACA IDENTIFICATIVA
+              PATENTE IDENTIFICATIVA • ARGENTINA
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-[#F4F7F8]">
-              Introduce la matrícula del automóvil
+              Introduce la patente del vehículo
             </h2>
+            <p className="text-xs text-[#9AA8B6]">
+              Sin guiones en el medio: Formato tradicional (<span className="text-[#00CCF2] font-mono font-bold">VLA481</span>) o Mercosur (<span className="text-[#00CCF2] font-mono font-bold">AA123BB</span>)
+            </p>
           </div>
 
           {/* Large Floating Automotive Search Input */}
           <div className="relative flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
-              <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                <span className="px-2 py-0.5 rounded bg-[#00CCF2] text-[#0D0D0D] text-[10px] font-black font-mono">
-                  ES
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <span className="px-2 py-0.5 rounded bg-[#00CCF2] text-[#0D0D0D] text-[10px] font-black font-mono tracking-wider">
+                  AR
                 </span>
               </div>
               <input
@@ -246,7 +250,7 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
                 value={plateInput}
                 onChange={handleInputChange}
                 onKeyDown={(e) => e.key === 'Enter' && executeSearch()}
-                placeholder="EJ. VLA-4821 O 7892-KTX"
+                placeholder="EJ. VLA481 O AA123BB"
                 autoComplete="off"
                 className="w-full bg-[#0D0D0D]/90 border-2 border-white/15 focus:border-[#00CCF2] focus:shadow-[0_0_30px_rgba(0,204,242,0.25)] rounded-2xl py-4 sm:py-5 pl-16 pr-4 text-2xl sm:text-3xl font-mono font-black tracking-widest text-[#F4F7F8] placeholder-[#9AA8B6]/30 uppercase outline-none transition-all duration-300 text-center sm:text-left shadow-inner"
               />
@@ -282,11 +286,11 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
             ))}
             <button
               id="quick-plate-not-found"
-              onClick={() => handleQuickPlateClick('NUE-5544')}
+              onClick={() => handleQuickPlateClick('AF987XZ')}
               className="px-3.5 py-1.5 rounded-full glass-pill hover:bg-[#F5A623]/20 text-[#F5A623] font-mono font-bold text-xs border border-[#F5A623]/30 transition-all cursor-pointer"
               title="Probar registro de vehículo inexistente"
             >
-              + NUE-5544 (Nuevo)
+              + AF987XZ (Nuevo)
             </button>
           </div>
         </div>
@@ -551,20 +555,26 @@ export const ReceptionView: React.FC<ReceptionViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#F4F7F8] mb-1.5">
-                    Matrícula <span className="text-[#FF5A4F]">*</span>
+                    Patente (Sin guiones) <span className="text-[#FF5A4F]">*</span>
                   </label>
                   <input
                     id="input-vehicle-plate"
                     type="text"
                     required
+                    placeholder="Ej. VLA481 o AA123BB"
                     value={formData.licensePlate}
                     onChange={(e) =>
-                      setFormData({ ...formData, licensePlate: e.target.value.toUpperCase() })
+                      setFormData({
+                        ...formData,
+                        licensePlate: normalizeLicensePlate(e.target.value),
+                      })
                     }
                     className="w-full bg-[#0D0D0D] border border-white/15 focus:border-[#00CCF2] rounded-xl px-4 py-3 text-sm font-mono font-black text-[#00CCF2] uppercase outline-none"
                   />
-                  {formErrors.licensePlate && (
+                  {formErrors.licensePlate ? (
                     <p className="text-[11px] text-[#FF5A4F] mt-1">{formErrors.licensePlate}</p>
+                  ) : (
+                    <p className="text-[10px] text-[#9AA8B6] mt-1">Formato Arg: VLA481 o AA123BB</p>
                   )}
                 </div>
 

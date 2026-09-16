@@ -18,6 +18,13 @@ import {
   RefreshCw,
   Eye,
   X,
+  KeyRound,
+  Lock,
+  MapPin,
+  Globe,
+  EyeOff,
+  Save,
+  Check,
 } from 'lucide-react';
 import {
   AppointmentSlot,
@@ -27,23 +34,29 @@ import {
   WeeklyScheduleConfig,
   WorkshopService,
 } from '../types';
-import { storageRepository } from '../services/storageRepository';
+import {
+  storageRepository,
+  formatARS,
+  OFFICIAL_WORKSHOP_MAPS_URL,
+} from '../services/storageRepository';
 
 interface AdminPanelViewProps {
   currentUser: UserProfile;
   onSwitchRole: (role: 'admin' | 'advisor' | 'technician') => void;
   onNavigateToReception?: () => void;
+  onOpenAdminLogin?: () => void;
 }
 
 export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   currentUser,
   onSwitchRole,
   onNavigateToReception,
+  onOpenAdminLogin,
 }) => {
-  const [activeTab, setActiveTab] = useState<'services' | 'schedules' | 'gcalendar'>('services');
+  const [activeTab, setActiveTab] = useState<'services' | 'schedules' | 'gcalendar' | 'location'>('services');
   const currentWorkshop = storageRepository.getCurrentWorkshop();
 
-  // Services Catalog State
+  // Services Catalog State (in Argentine Pesos $)
   const [services, setServices] = useState<WorkshopService[]>([]);
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -55,9 +68,21 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   const [newCategory, setNewCategory] = useState<ServiceCategory>('mantenimiento');
   const [newDescription, setNewDescription] = useState('');
   const [newDuration, setNewDuration] = useState<number>(60);
-  const [newPrice, setNewPrice] = useState<number>(95);
+  const [newPrice, setNewPrice] = useState<number>(95000);
   const [newIntervalKm, setNewIntervalKm] = useState<number>(10000);
   const [newRequiresElevator, setNewRequiresElevator] = useState<boolean>(true);
+
+  // Workshop Location & Google Maps Configuration
+  const [workshopAddress, setWorkshopAddress] = useState<string>(
+    currentWorkshop.address || 'V-LA Taller Mecánico, Córdoba, Argentina',
+  );
+  const [workshopMapsUrl, setWorkshopMapsUrl] = useState<string>(
+    currentWorkshop.googleMapsUrl || OFFICIAL_WORKSHOP_MAPS_URL,
+  );
+  const [publishAddress, setPublishAddress] = useState<boolean>(
+    currentWorkshop.publishAddress !== false,
+  );
+  const [isSavingLocation, setIsSavingLocation] = useState(false);
 
   // Weekly Schedule State
   const [scheduleConfig, setScheduleConfig] = useState<WeeklyScheduleConfig>(
@@ -69,7 +94,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   const [simulatedSlots, setSimulatedSlots] = useState<AppointmentSlot[]>([]);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const [targetSlot, setTargetSlot] = useState<AppointmentSlot | null>(null);
-  const [bookPlate, setBookPlate] = useState('VLA-4821');
+  const [bookPlate, setBookPlate] = useState('VLA481');
   const [bookClientName, setBookClientName] = useState('Alejandro Morales Silva');
   const [bookClientPhone, setBookClientPhone] = useState('+34 622 458 910');
   const [bookServiceId, setBookServiceId] = useState('');
@@ -82,6 +107,36 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  const handleSaveLocation = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (currentUser.role !== 'admin') {
+      showToast('Permiso denegado: Solo el Administrador puede modificar la ubicación del taller.');
+      return;
+    }
+    if (!workshopAddress.trim()) {
+      showToast('Por favor introduce una dirección para el taller.');
+      return;
+    }
+    setIsSavingLocation(true);
+    try {
+      storageRepository.updateWorkshopAddress(
+        workshopAddress.trim(),
+        workshopMapsUrl.trim() || OFFICIAL_WORKSHOP_MAPS_URL,
+        publishAddress,
+      );
+      showToast(
+        publishAddress
+          ? '¡Dirección y enlace a Google Maps guardados y marcados como PÚBLICOS en la web!'
+          : '¡Configuración guardada! La dirección ahora está OCULTA (Privada, solo con turno confirmado).',
+      );
+    } catch (err) {
+      console.error(err);
+      showToast('Error al guardar la configuración de ubicación.');
+    } finally {
+      setIsSavingLocation(false);
+    }
   };
 
   // Load Initial Data
@@ -315,17 +370,30 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 </span>
               </h4>
               <p className="text-xs text-[#9AA8B6] mt-0.5">
-                Solo el rol <strong>Admin</strong> puede cargar nuevos servicios al catálogo y configurar la disponibilidad semanal de turnos del taller.
+                Para editar el catálogo, horarios y Google Calendar, inicia sesión con el usuario <strong>ADMIN</strong> y contraseña <strong>PANCHO2026</strong>.
               </p>
             </div>
           </div>
-          <button
-            onClick={() => onSwitchRole('admin')}
-            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#00CCF2] to-[#087E91] text-[#0D0D0D] font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            Conmutar a Administrador (Carlos V.)
-          </button>
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            {onOpenAdminLogin && (
+              <button
+                id="btn-admin-gate-login"
+                type="button"
+                onClick={onOpenAdminLogin}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#F21616] to-[#F27D16] text-white font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Ingresar (ADMIN / PANCHO2026)</span>
+              </button>
+            )}
+            <button
+              onClick={() => onSwitchRole('admin')}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/[0.1] text-[#F4F7F8] font-bold text-xs active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#00CCF2]" />
+              <span>Conmutar Rol Admin</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -345,46 +413,65 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           </p>
         </div>
 
-        {/* Tab Navigation Controls */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[#131416] border border-white/[0.08] self-start md:self-auto overflow-x-auto">
+        {/* Tab Navigation Controls - Responsive layout so all buttons are fully visible on mobile */}
+        <div className="w-full lg:w-auto grid grid-cols-1 sm:grid-cols-2 lg:flex lg:items-center gap-2 p-1.5 rounded-2xl bg-[#131416] border border-white/[0.08]">
           <button
             onClick={() => setActiveTab('services')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center sm:justify-start lg:justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-normal sm:whitespace-nowrap text-center ${
               activeTab === 'services'
                 ? 'bg-gradient-to-r from-[#00CCF2] to-[#087E91] text-[#0D0D0D] shadow-md'
                 : 'text-[#9AA8B6] hover:text-[#F4F7F8] hover:bg-white/[0.04]'
             }`}
           >
-            <Wrench className="w-3.5 h-3.5" />
+            <Wrench className="w-3.5 h-3.5 shrink-0" />
             <span>Catálogo de Servicios</span>
-            <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/30 font-mono">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-black/30 font-mono shrink-0">
               {services.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('schedules')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center sm:justify-start lg:justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-normal sm:whitespace-nowrap text-center ${
               activeTab === 'schedules'
                 ? 'bg-gradient-to-r from-[#F27D16] to-[#F25116] text-[#0D0D0D] shadow-md'
                 : 'text-[#9AA8B6] hover:text-[#F4F7F8] hover:bg-white/[0.04]'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
-            <span>Turnos & Disponibilidad</span>
+            <Clock className="w-3.5 h-3.5 shrink-0" />
+            <span>Turnos Disponibles</span>
           </button>
 
           <button
             onClick={() => setActiveTab('gcalendar')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center justify-center sm:justify-start lg:justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-normal sm:whitespace-nowrap text-center ${
               activeTab === 'gcalendar'
                 ? 'bg-gradient-to-r from-[#00CCF2] via-[#F27D16] to-[#F21616] text-[#0D0D0D] shadow-md font-extrabold'
                 : 'text-[#9AA8B6] hover:text-[#F4F7F8] hover:bg-white/[0.04]'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="w-3.5 h-3.5 shrink-0" />
             <span>Google Calendar</span>
-            <span className="w-2 h-2 rounded-full bg-[#00CCF2] animate-pulse" />
+            <span className="w-2 h-2 rounded-full bg-[#00CCF2] animate-pulse shrink-0" />
+          </button>
+
+          <button
+            id="tab-admin-location"
+            onClick={() => setActiveTab('location')}
+            className={`flex items-center justify-center sm:justify-start lg:justify-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-normal sm:whitespace-nowrap text-center ${
+              activeTab === 'location'
+                ? 'bg-gradient-to-r from-[#00CCF2] to-[#28C98B] text-[#0D0D0D] shadow-md font-extrabold'
+                : 'text-[#9AA8B6] hover:text-[#F4F7F8] hover:bg-white/[0.04]'
+            }`}
+          >
+            <MapPin className="w-3.5 h-3.5 shrink-0" />
+            <span>Ubicación & Google Maps</span>
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${
+                publishAddress ? 'bg-[#28C98B]' : 'bg-[#F27D16]'
+              }`}
+              title={publishAddress ? 'Dirección pública en la web' : 'Dirección privada/oculta'}
+            />
           </button>
         </div>
       </div>
@@ -395,6 +482,10 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
           {/* Action and Search Bar */}
           <div className="glass-panel p-5 rounded-3xl border border-white/[0.08] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#28C98B]/10 border border-[#28C98B]/30 text-[11px] font-mono font-bold text-[#28C98B]">
+                <span>Moneda: Pesos Argentinos ($ ARS)</span>
+              </span>
+
               <input
                 type="text"
                 value={serviceSearch}
@@ -489,8 +580,8 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                         Cada {service.recommendedMileageInterval.toLocaleString()} km
                       </span>
                     )}
-                    <span className="text-base font-extrabold text-[#F4F7F8]">
-                      {service.basePrice} €
+                    <span className="text-base font-extrabold text-[#28C98B]">
+                      {formatARS(service.basePrice)}
                     </span>
                   </div>
 
@@ -990,6 +1081,315 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
         </div>
       )}
 
+      {/* ================= TAB 4: UBICACIÓN & GOOGLE MAPS (SOLO ADMIN) ================= */}
+      {activeTab === 'location' && (
+        <div className="space-y-8" id="admin-location-management">
+          {/* Header & Status Banner */}
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/[0.08] relative overflow-hidden">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#00CCF2]/20 to-[#28C98B]/20 text-[#00CCF2] border border-[#00CCF2]/30 flex items-center justify-center shrink-0">
+                  <MapPin className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap mb-1">
+                    <h2 className="text-xl sm:text-2xl font-black text-[#F4F7F8]">
+                      Ubicación del Taller & Google Maps
+                    </h2>
+                    <span
+                      className={`text-[11px] font-bold px-3 py-0.5 rounded-full border flex items-center gap-1.5 ${
+                        publishAddress
+                          ? 'bg-[#28C98B]/15 text-[#28C98B] border-[#28C98B]/30'
+                          : 'bg-[#F27D16]/15 text-[#F27D16] border-[#F27D16]/30'
+                      }`}
+                    >
+                      {publishAddress ? (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>DIRECCIÓN PÚBLICA EN LA WEB</span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>DIRECCIÓN PRIVADA / OCULTA</span>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#9AA8B6] max-w-2xl leading-relaxed">
+                    Personaliza la dirección física de tus instalaciones, el enlace oficial a Google Maps y decide si deseas publicar abiertamente la dirección o mantenerla reservada (los clientes solo la recibirán por WhatsApp al confirmar turno).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleSaveLocation()}
+                disabled={isSavingLocation}
+                className="px-6 py-3 rounded-2xl bg-gradient-to-r from-[#00CCF2] to-[#28C98B] text-[#0D0D0D] text-xs font-black flex items-center justify-center gap-2 shadow-[0_0_25px_rgba(0,204,242,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer self-start lg:self-auto shrink-0"
+              >
+                <Save className="w-4 h-4" />
+                <span>{isSavingLocation ? 'Guardando...' : 'Guardar Configuración'}</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Form Column */}
+            <div className="lg:col-span-6 space-y-6">
+              {/* Option: Publicar o No Publicar la Dirección */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/[0.08] space-y-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#F4F7F8]">
+                  <Globe className="w-4 h-4 text-[#00CCF2]" />
+                  <span>Publicación y Privacidad de la Dirección</span>
+                </div>
+                <p className="text-xs text-[#9AA8B6] leading-relaxed">
+                  Elige si deseas que la dirección física y el mapa interactivo se muestren abiertamente a cualquier visitante de la web o si prefieres reservarla solo para turnos confirmados.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setPublishAddress(true)}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                      publishAddress
+                        ? 'bg-[#28C98B]/10 border-[#28C98B]/40 shadow-[0_0_20px_rgba(40,201,139,0.15)]'
+                        : 'bg-[#1A1C20] border-white/5 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#F4F7F8] flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-[#28C98B]" />
+                        Publicar Dirección
+                      </span>
+                      {publishAddress && (
+                        <span className="w-2 h-2 rounded-full bg-[#28C98B] animate-ping" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#9AA8B6] leading-snug">
+                      Visible en la página pública, pie de página y botones de cómo llegar con Google Maps embebido.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPublishAddress(false)}
+                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer relative ${
+                      !publishAddress
+                        ? 'bg-[#F27D16]/10 border-[#F27D16]/40 shadow-[0_0_20px_rgba(242,125,22,0.15)]'
+                        : 'bg-[#1A1C20] border-white/5 opacity-70 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-bold text-[#F4F7F8] flex items-center gap-1.5">
+                        <Lock className="w-4 h-4 text-[#F27D16]" />
+                        No Publicar (Privada)
+                      </span>
+                      {!publishAddress && (
+                        <span className="w-2 h-2 rounded-full bg-[#F27D16] animate-ping" />
+                      )}
+                    </div>
+                    <p className="text-[11px] text-[#9AA8B6] leading-snug">
+                      Oculta en la web. Los clientes son informados de que la dirección exacta se entrega de forma privada por WhatsApp tras confirmar turno.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Address and Maps Inputs */}
+              <div className="glass-panel p-6 rounded-3xl border border-white/[0.08] space-y-5">
+                <div className="flex items-center gap-2 text-sm font-bold text-[#F4F7F8]">
+                  <MapPin className="w-4 h-4 text-[#00CCF2]" />
+                  <span>Datos de Ubicación Física</span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA8B6] block">
+                    Dirección Física del Taller (Texto mostrado a clientes)
+                  </label>
+                  <input
+                    type="text"
+                    value={workshopAddress}
+                    onChange={(e) => setWorkshopAddress(e.target.value)}
+                    placeholder="Ej. V-LA Taller Mecánico, Córdoba, Argentina"
+                    className="w-full px-4 py-3 rounded-xl bg-[#1A1C20] border border-white/10 text-xs text-[#F4F7F8] outline-none focus:border-[#00CCF2] transition-colors"
+                  />
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="text-[10px] text-[#9AA8B6]">Sugerencias rápidas:</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWorkshopAddress('V-LA Taller Mecánico, Córdoba, Argentina')
+                      }
+                      className="text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#00CCF2] cursor-pointer"
+                    >
+                      Sede Córdoba
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWorkshopAddress('Av. Colón 4500, Ciudad de Córdoba, Córdoba, Argentina')
+                      }
+                      className="text-[10px] px-2 py-0.5 rounded-lg bg-white/5 hover:bg-white/10 text-[#00CCF2] cursor-pointer"
+                    >
+                      Av. Colón
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#9AA8B6] block">
+                    Enlace Directo de Google Maps (URL para navegar / cómo llegar)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={workshopMapsUrl}
+                      onChange={(e) => setWorkshopMapsUrl(e.target.value)}
+                      placeholder="https://maps.app.goo.gl/..."
+                      className="w-full px-4 py-3 rounded-xl bg-[#1A1C20] border border-white/10 text-xs text-[#00CCF2] font-mono outline-none focus:border-[#00CCF2] transition-colors"
+                    />
+                    <a
+                      href={workshopMapsUrl || OFFICIAL_WORKSHOP_MAPS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-3 rounded-xl bg-[#1A1C20] border border-white/10 hover:border-[#00CCF2] text-[#00CCF2] flex items-center justify-center shrink-0 transition-colors"
+                      title="Probar enlace en Google Maps"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setWorkshopMapsUrl(
+                          `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                            workshopAddress.trim() || 'V-LA Taller Mecánico, Córdoba',
+                          )}`,
+                        )
+                      }
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-[#00CCF2]/10 hover:bg-[#00CCF2]/20 border border-[#00CCF2]/30 text-[#00CCF2] cursor-pointer"
+                    >
+                      Generar enlace desde dirección
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setWorkshopMapsUrl(OFFICIAL_WORKSHOP_MAPS_URL)}
+                      className="text-[10px] px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[#9AA8B6] cursor-pointer"
+                    >
+                      Restaurar enlace oficial ({OFFICIAL_WORKSHOP_MAPS_URL.slice(0, 24)}...)
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveLocation()}
+                    disabled={isSavingLocation}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#00CCF2] to-[#28C98B] text-[#0D0D0D] text-xs font-black flex items-center justify-center gap-2 shadow-lg hover:brightness-110 active:scale-98 transition-all cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingLocation ? 'Guardando...' : 'Guardar y Aplicar Cambios'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Live Preview Column */}
+            <div className="lg:col-span-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold tracking-wider text-[#00CCF2] uppercase flex items-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5" />
+                  Vista Previa en Vivo (Página Pública)
+                </span>
+                <span className="text-[11px] text-[#9AA8B6]">
+                  Estado: {publishAddress ? 'Visible para clientes' : 'Oculto para clientes'}
+                </span>
+              </div>
+
+              {publishAddress ? (
+                /* Published State Preview */
+                <div className="glass-panel p-5 rounded-3xl border border-[#00CCF2]/30 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-mono text-[#00CCF2] uppercase tracking-wider block font-bold">
+                        UBICACIÓN PÚBLICA DEL TALLER
+                      </span>
+                      <h4 className="text-sm font-bold text-[#F4F7F8]">
+                        {workshopAddress || 'V-LA Taller Mecánico'}
+                      </h4>
+                    </div>
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#28C98B]/15 text-[#28C98B] border border-[#28C98B]/30 font-bold">
+                      ● Publicado
+                    </span>
+                  </div>
+
+                  <div className="h-64 sm:h-72 w-full rounded-2xl overflow-hidden border border-white/10 relative bg-[#131416]">
+                    <iframe
+                      title="Vista Previa de Google Maps"
+                      width="100%"
+                      height="100%"
+                      style={{ border: 0 }}
+                      loading="lazy"
+                      allowFullScreen
+                      referrerPolicy="no-referrer-when-downgrade"
+                      src={`https://maps.google.com/maps?q=${encodeURIComponent(
+                        workshopAddress || 'V-LA Taller Mecánico, Córdoba, Argentina',
+                      )}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                      className="w-full h-full"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <a
+                      href={workshopMapsUrl || OFFICIAL_WORKSHOP_MAPS_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-bold text-[#00CCF2] hover:underline flex items-center gap-1.5"
+                    >
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>Abrir en Google Maps / Cómo llegar</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <span className="text-[10px] text-[#9AA8B6]">
+                      Navegación GPS habilitada
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Private/Hidden State Preview */
+                <div className="glass-panel p-8 rounded-3xl border border-[#F27D16]/30 space-y-5 text-center bg-[#131416]/90">
+                  <div className="w-14 h-14 rounded-2xl bg-[#F27D16]/15 text-[#F27D16] border border-[#F27D16]/30 flex items-center justify-center mx-auto">
+                    <Lock className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-mono text-[#F27D16] uppercase tracking-wider block font-bold mb-1">
+                      MODO PRIVADO ACTIVO
+                    </span>
+                    <h4 className="text-base font-bold text-[#F4F7F8]">
+                      Dirección Reservada / Privada
+                    </h4>
+                    <p className="text-xs text-[#9AA8B6] mt-2 max-w-sm mx-auto leading-relaxed">
+                      El mapa y la dirección exacta están ocultos en la web pública. Los clientes verán la notificación de que la ubicación se coordina por WhatsApp tras confirmar el turno.
+                    </p>
+                  </div>
+                  <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] text-xs text-[#9AA8B6]">
+                    <span className="text-[#F4F7F8] font-bold block mb-0.5">
+                      Mensaje al cliente:
+                    </span>
+                    "Por seguridad y exclusividad, la dirección física se comparte de manera privada vía WhatsApp tras verificar tu turno."
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ================= MODAL: CARGAR NUEVO SERVICIO (SOLO ADMIN) ================= */}
       {showNewServiceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
@@ -1081,7 +1481,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-[11px] text-[#9AA8B6] font-semibold block mb-1">
-                    Precio Base (€)
+                    Precio Base ($ ARS)
                   </label>
                   <input
                     type="number"
@@ -1173,14 +1573,18 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
 
             <form onSubmit={handleBookSlot} className="space-y-3.5">
               <div>
-                <label className="text-[11px] text-[#9AA8B6] block mb-1">
-                  Matrícula del Vehículo *
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] text-[#9AA8B6] block">
+                    Matrícula / Patente (Argentina) *
+                  </label>
+                  <span className="text-[10px] text-[#00CCF2] font-mono">Sin guiones (VLA481 o AA123BB)</span>
+                </div>
                 <input
                   type="text"
                   required
+                  placeholder="VLA481 o AA123BB"
                   value={bookPlate}
-                  onChange={(e) => setBookPlate(e.target.value)}
+                  onChange={(e) => setBookPlate(storageRepository.normalizeLicensePlate(e.target.value))}
                   className="w-full px-3 py-2 rounded-xl bg-[#1A1C20] border border-white/10 text-xs font-mono font-bold text-[#00CCF2] uppercase outline-none focus:border-[#00CCF2]"
                 />
               </div>
@@ -1217,7 +1621,7 @@ export const AdminPanelView: React.FC<AdminPanelViewProps> = ({
                 >
                   {services.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.name} ({s.basePrice} €)
+                      {s.name} ({formatARS(s.basePrice)})
                     </option>
                   ))}
                 </select>

@@ -13,8 +13,13 @@ import {
   Sparkles,
   ExternalLink,
   Zap,
+  Sun,
+  Moon,
+  MessageCircle,
+  KeyRound,
 } from 'lucide-react';
 import { UserProfile, UserRole, Workshop } from '../types';
+import { WHATSAPP_CONFIG } from '../utils/whatsapp';
 
 interface NavbarProps {
   currentView: 'reception' | 'dashboard' | 'history' | 'landing' | 'new-order' | 'admin';
@@ -25,6 +30,9 @@ interface NavbarProps {
   currentUser: UserProfile;
   onSwitchRole: (role: UserRole) => void;
   onOpenFirebaseModal: () => void;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
+  onOpenAdminLogin?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -36,6 +44,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
   onSwitchRole,
   onOpenFirebaseModal,
+  theme = 'dark',
+  onToggleTheme,
+  onOpenAdminLogin,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showRoleMenu, setShowRoleMenu] = useState(false);
@@ -218,6 +229,63 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </div>
 
+              {/* WhatsApp Turnos Button */}
+              <a
+                id="btn-nav-whatsapp"
+                href={WHATSAPP_CONFIG.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#25D366]/15 hover:bg-[#25D366]/25 border border-[#25D366]/40 text-xs font-bold text-[#25D366] transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                title={`Solicitar turno por WhatsApp (${WHATSAPP_CONFIG.displayPhone})`}
+              >
+                <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                <span className="hidden xl:inline">Turnos WhatsApp</span>
+              </a>
+
+              {/* Admin Login / Access Button */}
+              <button
+                id="btn-nav-admin-login"
+                type="button"
+                onClick={onOpenAdminLogin}
+                className={`flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-bold transition-all cursor-pointer shadow-sm ${
+                  currentUser.role === 'admin'
+                    ? 'bg-[#F21616]/15 border-[#F21616]/40 text-[#F21616] hover:bg-[#F21616]/25'
+                    : 'bg-[#131416]/90 border-white/[0.1] text-[#F4F7F8] hover:border-[#00CCF2]/50 hover:bg-[#1A1C20]'
+                }`}
+                title={
+                  currentUser.role === 'admin'
+                    ? 'Sesión de Administrador activa (ADMIN)'
+                    : 'Acceso Administrador (Usuario: ADMIN / PANCHO2026)'
+                }
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">
+                  {currentUser.role === 'admin' ? 'ADMIN Activo' : 'Acceso Admin'}
+                </span>
+              </button>
+
+              {/* Theme Selector (Modo Claro / Modo Oscuro) */}
+              <button
+                id="btn-toggle-theme"
+                type="button"
+                onClick={onToggleTheme}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#131416]/90 backdrop-blur-xl border border-white/[0.08] text-xs font-semibold text-[#F4F7F8] hover:border-[#00CCF2]/50 hover:bg-[#1A1C20] transition-all cursor-pointer shadow-sm group"
+                title={theme === 'light' ? 'Cambiar a Modo Oscuro' : 'Cambiar a Modo Claro'}
+                aria-label="Cambiar tema claro / oscuro"
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="w-3.5 h-3.5 text-[#00CCF2] group-hover:-rotate-12 transition-transform" />
+                    <span className="hidden xl:inline font-medium">Modo Oscuro</span>
+                  </>
+                ) : (
+                  <>
+                    <Sun className="w-3.5 h-3.5 text-[#F27D16] group-hover:rotate-45 transition-transform" />
+                    <span className="hidden xl:inline font-medium">Modo Claro</span>
+                  </>
+                )}
+              </button>
+
               {/* Firebase & Security Status Button */}
               <button
                 id="btn-firebase-modal"
@@ -231,6 +299,47 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Mobile menu toggle */}
             <div className="flex md:hidden items-center gap-2">
+              {/* Mobile WhatsApp Button */}
+              <a
+                id="btn-mobile-whatsapp"
+                href={WHATSAPP_CONFIG.bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2.5 rounded-full bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40"
+                title="Sacar turno por WhatsApp"
+              >
+                <MessageCircle className="w-4 h-4 fill-current" />
+              </a>
+
+              {/* Mobile Admin Login Button */}
+              <button
+                id="btn-mobile-admin-login"
+                type="button"
+                onClick={onOpenAdminLogin}
+                className={`p-2.5 rounded-full border ${
+                  currentUser.role === 'admin'
+                    ? 'bg-[#F21616]/20 text-[#F21616] border-[#F21616]/40'
+                    : 'bg-[#131416] text-[#F4F7F8] border-white/[0.1]'
+                }`}
+                title="Acceso Admin (ADMIN / PANCHO2026)"
+              >
+                <KeyRound className="w-4 h-4" />
+              </button>
+
+              <button
+                id="btn-mobile-theme"
+                type="button"
+                onClick={onToggleTheme}
+                className="p-2.5 rounded-full bg-[#131416] text-[#F4F7F8] border border-white/[0.1] hover:border-[#00CCF2]/40 transition-colors"
+                title={theme === 'light' ? 'Cambiar a Modo Oscuro' : 'Cambiar a Modo Claro'}
+                aria-label="Cambiar tema claro / oscuro"
+              >
+                {theme === 'light' ? (
+                  <Moon className="w-4 h-4 text-[#00CCF2]" />
+                ) : (
+                  <Sun className="w-4 h-4 text-[#F27D16]" />
+                )}
+              </button>
               <button
                 id="btn-mobile-firebase"
                 onClick={onOpenFirebaseModal}
@@ -314,6 +423,81 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {r === 'admin' ? 'Admin' : r === 'advisor' ? 'Asesor' : 'Técnico'}
                   </button>
                 ))}
+              </div>
+
+              {/* Mobile WhatsApp CTA */}
+              <div className="pt-2 border-t border-white/[0.06]">
+                <a
+                  id="btn-mobile-menu-whatsapp"
+                  href={WHATSAPP_CONFIG.bookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4 fill-current" />
+                  <span>Sacar Turno por WhatsApp ({WHATSAPP_CONFIG.displayPhone})</span>
+                </a>
+              </div>
+
+              {/* Mobile Admin Login Access */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  id="btn-mobile-menu-admin-login"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (onOpenAdminLogin) onOpenAdminLogin();
+                  }}
+                  className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                    currentUser.role === 'admin'
+                      ? 'bg-[#F21616]/15 border-[#F21616]/30 text-[#F21616]'
+                      : 'bg-[#1A1C20] border-white/[0.08] text-[#F4F7F8]'
+                  }`}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  <span>
+                    {currentUser.role === 'admin'
+                      ? 'Sesión de Admin Activa (ADMIN)'
+                      : 'Acceso Admin (Usuario: ADMIN / PANCHO2026)'}
+                  </span>
+                </button>
+              </div>
+
+              {/* Mobile Theme Toggle Section */}
+              <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                <span className="text-[#9AA8B6]">Tema Visual:</span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    id="btn-mobile-set-light"
+                    onClick={() => {
+                      if (theme !== 'light' && onToggleTheme) onToggleTheme();
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
+                      theme === 'light'
+                        ? 'bg-[#00CCF2] text-[#0D0D0D] font-bold shadow-sm'
+                        : 'bg-[#1A1C20] text-[#9AA8B6] border border-white/[0.05]'
+                    }`}
+                  >
+                    <Sun className="w-3.5 h-3.5" />
+                    <span>Claro</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-mobile-set-dark"
+                    onClick={() => {
+                      if (theme !== 'dark' && onToggleTheme) onToggleTheme();
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
+                      theme === 'dark'
+                        ? 'bg-[#00CCF2] text-[#0D0D0D] font-bold shadow-sm'
+                        : 'bg-[#1A1C20] text-[#9AA8B6] border border-white/[0.05]'
+                    }`}
+                  >
+                    <Moon className="w-3.5 h-3.5" />
+                    <span>Oscuro</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

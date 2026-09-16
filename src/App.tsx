@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ReceptionView } from './components/ReceptionView';
 import { DashboardView } from './components/DashboardView';
@@ -13,6 +13,8 @@ import { PublicLandingView } from './components/PublicLandingView';
 import { AdminPanelView } from './components/AdminPanelView';
 import { FirebaseModal } from './components/FirebaseModal';
 import { AmbientBackground } from './components/AmbientBackground';
+import { WhatsAppWidget } from './components/WhatsAppWidget';
+import { AdminLoginModal } from './components/AdminLoginModal';
 import { storageRepository } from './services/storageRepository';
 import { Client, ServiceOrder, UserProfile, UserRole, Vehicle, Workshop } from './types';
 
@@ -20,6 +22,41 @@ export default function App() {
   const [currentView, setCurrentView] = useState<
     'reception' | 'dashboard' | 'history' | 'landing' | 'new-order' | 'admin'
   >('reception');
+
+  // Theme mode: 'dark' | 'light'
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('vla_theme_mode');
+      if (saved === 'light' || saved === 'dark') {
+        return saved;
+      }
+    }
+    return 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.add('light');
+      root.classList.remove('dark');
+      document.body.classList.add('light');
+      document.body.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+      root.classList.remove('light');
+      document.body.classList.add('dark');
+      document.body.classList.remove('light');
+    }
+    localStorage.setItem('vla_theme_mode', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      showToast(`Modo cambiado a: ${next === 'light' ? 'Claro ☀️' : 'Oscuro 🌙'}`);
+      return next;
+    });
+  };
 
   // Multi-tenant and User states
   const [currentWorkshop, setCurrentWorkshop] = useState<Workshop>(
@@ -42,6 +79,7 @@ export default function App() {
 
   // Modals & Notifications
   const [showFirebaseModal, setShowFirebaseModal] = useState<boolean>(false);
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -106,7 +144,11 @@ export default function App() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#0D0D0D] text-[#F4F7F8] flex flex-col selection:bg-[#00CCF2]/30 selection:text-[#00CCF2]">
+    <div
+      className={`relative min-h-screen ${
+        theme === 'light' ? 'light bg-[#F4F6F8] text-[#0F172A]' : 'dark bg-[#0D0D0D] text-[#F4F7F8]'
+      } flex flex-col selection:bg-[#00CCF2]/30 selection:text-[#00CCF2] transition-colors duration-250`}
+    >
       {/* Dynamic Framer / Webflow Ambient Aurora & Parallax Backdrop */}
       <AmbientBackground />
 
@@ -131,6 +173,9 @@ export default function App() {
         currentUser={currentUser}
         onSwitchRole={handleSwitchRole}
         onOpenFirebaseModal={() => setShowFirebaseModal(true)}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onOpenAdminLogin={() => setShowAdminLoginModal(true)}
       />
 
       {/* Main Content Rendered based on currentView */}
@@ -162,6 +207,7 @@ export default function App() {
             currentUser={currentUser}
             onSwitchRole={handleSwitchRole}
             onNavigateToReception={() => setCurrentView('reception')}
+            onOpenAdminLogin={() => setShowAdminLoginModal(true)}
           />
         )}
 
@@ -180,6 +226,25 @@ export default function App() {
         )}
       </main>
 
+      {/* Floating WhatsApp Bubble & Quick Turno CTA */}
+      <WhatsAppWidget />
+
+      {/* Admin Authentication Modal (User: ADMIN / Pass: PANCHO2026) */}
+      <AdminLoginModal
+        isOpen={showAdminLoginModal}
+        onClose={() => setShowAdminLoginModal(false)}
+        currentUser={currentUser}
+        onLoginSuccess={(authedUser) => {
+          setCurrentUser(authedUser);
+          showToast(`¡Sesión iniciada con éxito como ${authedUser.username || authedUser.displayName}!`);
+        }}
+        onLogout={() => {
+          storageRepository.logoutUser();
+          setCurrentUser(storageRepository.getCurrentUser());
+          showToast('Sesión de administrador cerrada correctamente.');
+        }}
+      />
+
       {/* Firebase & Security Test Suite Modal */}
       <FirebaseModal
         isOpen={showFirebaseModal}
@@ -193,7 +258,7 @@ export default function App() {
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>
-            © {new Date().getFullYear()} <strong>V-LA Taller Mecánico</strong> · Gestión integral, fotos y orden por matrícula.
+            © {new Date().getFullYear()} <strong>V-LA Taller Mecánico</strong> · Gestión integral, registro técnico y orden por matrícula.
           </p>
           <div className="flex items-center gap-4 text-[11px]">
             <span className="text-[#00CCF2] flex items-center gap-1.5 font-bold">
